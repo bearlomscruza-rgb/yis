@@ -164,21 +164,24 @@ function moonUniqueItem(r) {
   return UNIQUE_ROLLS[index] ?? null;
 }
 function moonRemainingFraction(r) {return Math.max(0,Math.min(1,(r-.905)/.095));}
+// V236 roll table (same with or without a Spark Moon):
+//  each god armour piece 20%, Spark Mace 15%, Spark Sword 1.5%, God Villager 0.5%,
+//  God Apple / Ore / Cloud Loot 1% each. Items that already exist in the world can't be rolled:
+//  landing on one gives an unclaimed piece instead, or normal loot when everything is claimed.
+const ROLL_TABLE=[
+  [.20,'unique','sparkmod:god_helmet'],[.40,'unique','sparkmod:god_chestplate'],
+  [.60,'unique','sparkmod:god_leggings'],[.80,'unique','sparkmod:god_boots'],
+  [.95,'unique','minecraft:mace'],[.965,'unique','sparkmod:spark_sword'],
+  [.97,'villager'],[.98,'apple'],[.99,'ore'],[1.01,'cloud']
+];
+function rollKind(r){for(const [max,kind,id] of ROLL_TABLE)if(r<max)return {kind,id};return {kind:'cloud'};}
+function rangeFor(id){let lo=0;for(const [max,kind,i] of ROLL_TABLE){if(i===id)return (lo+max)/2;lo=max;}return null;}
+const prettyId=id=>id.replace('sparkmod:god_','God ').replace('sparkmod:','').replace('minecraft:mace','Spark Mace').replaceAll('_',' ');
 function rewardName(value) {
-  const {r,moon}=sparkPrize(value);
-  if (r < .005) return '§6GOD VILLAGER';
-  if (moon) {
-    const id=moonUniqueItem(r);
-    if (id) return '§6SPARK MOON EQUIPMENT: '+id.replace('sparkmod:','').replace('minecraft:mace','Spark Mace').replaceAll('_',' ');
-    const tail=moonRemainingFraction(r);
-    if (tail<.25) return '§dENCHANTED GOD APPLE';
-    if (tail<.75) return '§eRANDOM ORE';
-    return '§fCLOUD LOOT';
-  }
-  if (r < .025) return '§6UNIQUE SPARK EQUIPMENT';
-  if (r < .275) return '§dENCHANTED GOD APPLE';
-  if (r < .775) return '§eRANDOM ORE';
-  return '§fCLOUD LOOT';
+  const {r}=sparkPrize(value);
+  const k=rollKind(r);
+  if(k.kind==='unique')return '§6'+prettyId(k.id).toUpperCase();
+  return {villager:'§6GOD VILLAGER',apple:'§dENCHANTED GOD APPLE',ore:'§eRANDOM ORE',cloud:'§fCLOUD LOOT'}[k.kind];
 }
 // Fruit-style roulette: quick reward cards, then progressively slower stops.
 function playGachaCloud(p, rolls) {
@@ -190,10 +193,12 @@ function playGachaCloud(p, rolls) {
   // V229 pity: every 15 Spark Tokens without unique Spark gear guarantees a unique piece.
   let pity=Number(prop(p,'sparkPity',0));
   for(const prize of prizes){
-   const unique=prize.moon?!!moonUniqueItem(prize.r):(prize.r>=.005&&prize.r<.025);
-   if(unique){pity=0;continue;}
+   const k=rollKind(prize.r);
+   const claimed=String(prop(world,'uniqueSparkRolls','')).split('|');
+   if(k.kind==='unique'&&!claimed.includes(k.id)){pity=0;continue;}
    pity++;
-   if(pity>=PITY_LIMIT&&unclaimedUniqueCount()>0){prize.r=.015;prize.moon=false;pity=0;tell(p,`§6⚡ PITY! ${PITY_LIMIT} Spark Tokens without Spark gear - this roll is guaranteed unique Spark equipment!`);}
+   const open=UNIQUE_ROLLS.find(id=>!claimed.includes(id));
+   if(pity>=PITY_LIMIT&&open){prize.r=rangeFor(open);prize.moon=false;pity=0;tell(p,`§6⚡ PITY! ${PITY_LIMIT} Spark Tokens without Spark gear - this roll is guaranteed unique Spark equipment!`);}
   }
   setProp(p,'sparkPity',pity);
   setProp(p,'pendingSparkPrizes',JSON.stringify(prizes));
@@ -237,7 +242,7 @@ async function openSparkRollMenu(p, attempt=0){
   if(!valid(p))return;
   const form=new ActionFormData()
     .title('§e⚡ ROLL A SPARK')
-    .body('§6☁ LIGHTNING CLOUD ☁\n§eSpend 1 Spark Token to roll for a reward!\n§7Pity: §f'+Number(prop(p,'sparkPity',0))+'/'+PITY_LIMIT+' §7(guaranteed unique Spark gear at '+PITY_LIMIT+')'+(sparkMoonStatus().active?'\n§dSPARK MOON: 15% chance for each unique Spark gear piece!':''))
+    .body('§6☁ LIGHTNING CLOUD ☁\n§eSpend 1 Spark Token to roll for a reward!\n§7Pity: §f'+Number(prop(p,'sparkPity',0))+'/'+PITY_LIMIT+' §7(guaranteed unique Spark gear at '+PITY_LIMIT+')'+'\n§6Odds: §eeach God Armour piece 20%, Spark Mace 15%, Spark Sword 1.5%')
     .button('§e⚡ ROLL A SPARK — 1 Token','textures/ui/spark_storm_cloud')
     .button('§c✕ EXIT');
   try{
@@ -282,7 +287,7 @@ function claimSpecificUniqueRoll(id) {
 }
 // If a Spark Moon roll lands on an item already claimed in this world, give
 // one of the still-unclaimed armor pieces instead. Never create a duplicate.
-const DUPLICATE_ARMOR_REWARDS=[I.helmet,I.chest,I.legs];
+const DUPLICATE_ARMOR_REWARDS=[I.helmet,I.chest,I.legs,I.boots];
 function claimDuplicateArmorReward(){
   const claimed=new Set(String(prop(world,'uniqueSparkRolls','')).split('|').filter(Boolean));
   const candidates=DUPLICATE_ARMOR_REWARDS.filter(id=>!claimed.has(id));
@@ -301,53 +306,35 @@ function giveUniqueRoll(p, requestedItem=null){
       tell(p,'§6DUPLICATE ROLL UPGRADE! Guaranteed unclaimed Spark '+upgrade.replace('sparkmod:god_','').replaceAll('_',' ')+' §7(World exclusive)');
       return;
     }
-    give(p,'minecraft:enchanted_golden_apple');
-    tell(p,'§eHelmet, Chestplate and Leggings already claimed worldwide. Bonus God Apple awarded!');
+    tell(p,'§7That Spark item already exists in this world.');
+    const r=Math.random();normalLoot(p,r<.25?'apple':r<.75?'ore':'cloud');
     return;
   }
   give(p,id);
   if(GOD_ARMOR_IDS.includes(id))issueGodArmor(p,id);
   tell(p,'§6UNIQUE SPARK REWARD! '+id.replace('sparkmod:','').replace('minecraft:mace','Spark Mace').replaceAll('_',' ')+' §7(World exclusive)');
 }
-function roll(p, selectedRoll){
-  const prize=sparkPrize(selectedRoll);
-  const {r,moon}=prize;
-  // Spark Moon changes only the Moon roll table. Non-Moon rates remain V205.
-  // Each of the six gear pieces owns a separate 15% interval. An already-claimed
-  // world-exclusive piece redirects to unclaimed helmet/chestplate/leggings.
-  if(moon && r>=.005){
-    const moonItem=moonUniqueItem(r);
-    if(moonItem){giveUniqueRoll(p,moonItem);return;}
-    const extra=moonRemainingFraction(r);
-    if(extra<.25){give(p,'minecraft:enchanted_golden_apple',1);tell(p,'§dRARE! Enchanted Golden Apple!');return;}
-    if(extra<.75){
-      const ores=['minecraft:coal_ore','minecraft:iron_ore','minecraft:gold_ore','minecraft:diamond_ore','minecraft:emerald_ore','minecraft:redstone_ore','minecraft:lapis_ore','minecraft:copper_ore'];
-      const ore=ores[Math.floor(Math.random()*ores.length)];give(p,ore,1);
-      tell(p,'§eOre reward: '+ore.replace('minecraft:','').replaceAll('_',' '));return;
-    }
-    const common=['minecraft:amethyst_shard','minecraft:quartz','minecraft:glowstone_dust'];
-    give(p,common[Math.floor(Math.random()*common.length)],1+Math.floor(Math.random()*3));
-    tell(p,'§7Cloud reward.');return;
-  }
-  if(r<.005){
-    const v=safe(()=>p.dimension.spawnEntity('minecraft:villager',{x:p.location.x+2,y:p.location.y,z:p.location.z}));
-    if(v)v.nameTag='§6God Villager';
-    tell(p,'§6LEGENDARY! God Villager!');
-  }else if(r<.025){
-    // Sword, mace and each armor slot can be rolled only once across the world.
-    giveUniqueRoll(p);
-  }else if(r<.275){
-    give(p,'minecraft:enchanted_golden_apple',1);
-    tell(p,'§dRARE! Enchanted Golden Apple!');
-  }else if(r<.775){
+function normalLoot(p,kind){
+  if(kind==='apple'){give(p,'minecraft:enchanted_golden_apple',1);tell(p,'§dRARE! Enchanted Golden Apple!');return;}
+  if(kind==='ore'){
     const ores=['minecraft:coal_ore','minecraft:iron_ore','minecraft:gold_ore','minecraft:diamond_ore','minecraft:emerald_ore','minecraft:redstone_ore','minecraft:lapis_ore','minecraft:copper_ore'];
     const ore=ores[Math.floor(Math.random()*ores.length)];give(p,ore,1);
-    tell(p,'§eOre reward: '+ore.replace('minecraft:','').replaceAll('_',' '));
-  }else{
-    const common=['minecraft:amethyst_shard','minecraft:quartz','minecraft:glowstone_dust'];
-    give(p,common[Math.floor(Math.random()*common.length)],1+Math.floor(Math.random()*3));
-    tell(p,'§7Cloud reward.');
+    tell(p,'§eOre reward: '+ore.replace('minecraft:','').replaceAll('_',' '));return;
   }
+  const common=['minecraft:amethyst_shard','minecraft:quartz','minecraft:glowstone_dust'];
+  give(p,common[Math.floor(Math.random()*common.length)],1+Math.floor(Math.random()*3));
+  tell(p,'§7Cloud reward.');
+}
+function roll(p, selectedRoll){
+  const {r}=sparkPrize(selectedRoll);
+  const k=rollKind(r);
+  if(k.kind==='unique'){giveUniqueRoll(p,k.id);return;}
+  if(k.kind==='villager'){
+    const v=safe(()=>p.dimension.spawnEntity('minecraft:villager',{x:p.location.x+2,y:p.location.y,z:p.location.z}));
+    if(v)v.nameTag='§6God Villager';
+    tell(p,'§6LEGENDARY! God Villager!');return;
+  }
+  normalLoot(p,k.kind);
 }
 // Deliver any owed rewards from an interrupted gacha animation on reconnect.
 world.afterEvents.playerSpawn.subscribe(({player})=>{
@@ -1512,6 +1499,18 @@ world.afterEvents.entityDie.subscribe(ev=>{
  }
 });
 
+// V236: tell every player where the Spark Colosseum and Spark Shrine are when they join.
+world.afterEvents.playerSpawn.subscribe(({player,initialSpawn})=>{
+  if(!initialSpawn)return;
+  system.runTimeout(()=>{
+    if(!valid(player))return;
+    const cy=world.getDynamicProperty('sparkmod:colosseum_sparks_v182_y');
+    const sy=world.getDynamicProperty('sparkmod:temple_surface_y');
+    tell(player,'§6§l⚡ SPARK LOCATIONS LEAKED ⚡');
+    tell(player,`§eSpark Colosseum: §fX 1750, ${typeof cy==='number'?'Y '+(cy+4)+', ':''}Z 1500 §7(summon the Bolt Titan with 1 diamond)`);
+    tell(player,`§eSpark Shrine: §fX 1500, ${typeof sy==='number'?'Y '+sy+', ':''}Z 1500 §7(awaken, forge and recharge your Spark gear)`);
+  },60);
+});
 // V8: instant-mining action on USE-ON-BLOCK with the appropriate tool.
 // This is a Bedrock-friendly interaction alternative to left-click instant breaking.
 const PROTECTED_BLOCKS = /bedrock|barrier|command_block|structure_block|jigsaw|end_portal|nether_portal|end_gateway|reinforced_deepslate/;
