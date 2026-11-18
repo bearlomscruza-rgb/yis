@@ -1,0 +1,50 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "sparkmod:bolt_titan_phase3",
+      "materials": {
+        "default": "entity_alphatest",
+        "glowing_eyes": "entity_emissive_alpha"
+      },
+      "textures": {
+        "default": "textures/entity/bolt_titan",
+        "low": "textures/entity/bolt_titan_low"
+      },
+      "geometry": {
+        "default": "geometry.sparkmod.bolt_titan"
+      },
+      "animations": {
+        "walk": "animation.sparkmod.titan.walk",
+        "look": "animation.sparkmod.titan.look",
+        "idle": "animation.sparkmod.titan.idle",
+        "attack": "animation.sparkmod.titan.attack",
+        "melee_controller": "controller.animation.sparkmod.titan.melee",
+        "cast": "animation.sparkmod.titan.cast",
+        "cast_controller": "controller.animation.sparkmod.titan.cast",
+        "emerge": "animation.sparkmod.titan.emerge",
+        "emerge_controller": "controller.animation.sparkmod.titan.emerge",
+        "shutdown": "animation.sparkmod.titan.shutdown",
+        "shutdown_controller": "controller.animation.sparkmod.titan.shutdown"
+      },
+      "scripts": {
+        "animate": [
+          {
+            "walk": "query.modified_move_speed > 0.01 && !query.property('sparkmod:attacking') && !query.property('sparkmod:casting') && !query.property('sparkmod:emerging') && !query.property('sparkmod:shutdown')"
+          },
+          {
+            "idle": "query.modified_move_speed <= 0.01 && !query.property('sparkmod:attacking') && !query.property('sparkmod:casting') && !query.property('sparkmod:emerging') && !query.property('sparkmod:shutdown')"
+          },
+          "look",
+          "cast_controller",
+          "melee_controller",
+          "emerge_controller",
+          "shutdown_controller"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.sparkmod.bolt_titan"
+      ]
+    }
+  }
+}
