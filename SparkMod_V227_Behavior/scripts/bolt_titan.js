@@ -1,8 +1,8 @@
 import {world,system,ItemStack,InputPermissionCategory,WeatherType} from '@minecraft/server';
 import {recordTitanLightning} from './titan_player_damage_v201.js';
 import * as F from './titan_fx_v217.js';
-import {EYES,CHEST,ROCKS,WINGS,GOD_EYES,GOD_CHEST,MAGMA_EYES,MAGMA_CHEST,MAGMA_FLAMES} from './titan_model.js';
-// Phases 1 and 3 use the magma golem model; phase 2 (cracked base Titan) the classic model.
+import {EYES,CHEST,ROCKS,WINGS,GOD_EYES,GOD_CHEST,MAGMA_EYES,MAGMA_CHEST,MAGMA_FLAMES,MAGMA_RODS} from './titan_model.js';
+// Phases 1 and 3 use the lightning golem model; phase 2 (cracked base Titan) the classic model.
 const isMagma=b=>b.typeId===GIANT||!safe(()=>b.getProperty('sparkmod:cracked'),false);
 const BASE='sparkmod:bolt_titan',GIANT='sparkmod:bolt_titan_phase3',DEMON='sparkmod:spark_demon';
 const TYPES=[BASE,GIANT,DEMON],LOCK='sparkmod:bolt_titan_defeated',PENDING='sparkmod:titan_transitions',STUN='sparkmod:titan_stun',RANK='sparkmod:titan_damage';
@@ -767,8 +767,11 @@ function aura(b){
   const {at}=bodyFrame(b),cr=safe(()=>b.getProperty('sparkmod:cracks'),0);
   const godNow=safe(()=>b.getProperty(GOD),0)>0;
   for(const e of (godNow?GOD_EYES:isMagma(b)?MAGMA_EYES:EYES))F.orb(d,at(...e),.34+cr*.04,godNow?F.C.white:F.C.gold,.55,.9);
-  if(!godNow&&isMagma(b)){ // flames burning on its shoulders, embers dripping off
-   for(const f of MAGMA_FLAMES){const p=at(...f);F.vfx(d,'minecraft:basic_flame_particle',p);if(Math.random()<.5)F.vfx(d,'minecraft:lava_particle',p);}
+  if(!godNow&&isMagma(b)){ // lightning crackling off its shoulders and arcing between the rods
+   for(const f of MAGMA_FLAMES){const p=at(...f);F.orb(d,p,.9,F.C.gold,.25,.8);if(Math.random()<.5)F.sparks(d,p,5,3,F.C.gold);}
+   const [r1,r2]=MAGMA_RODS.map(r=>at(...r));
+   if(Math.random()<.45){F.arc(d,r1,r2,{color:F.C.white,size:.22,jag:.9,branches:1,max:70});F.sfx(d,'sparkmod.titan.zap',r1,.7,1.3+Math.random()*.4);}
+   for(const r of [r1,r2])if(Math.random()<.4)F.arc(d,r,{x:r.x+(Math.random()-.5)*2,y:r.y+1+Math.random()*1.5,z:r.z+(Math.random()-.5)*2},{color:F.C.gold,size:.18,branches:0,max:20});
   }
   if(cr>0&&!godNow&&!isMagma(b)){F.orb(d,at(...CHEST),.8+cr*.35,F.C.white,.55,.7);if(tk%20<10)F.motes(d,at(...CHEST),.3,2+cr,F.C.gold);}
   if(b.typeId===GIANT&&!godNow&&cr>=2){ // black fragments flaking off as it weakens

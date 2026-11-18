@@ -1,4 +1,4 @@
-"""Builds the Bolt Titan models and skins (V226).
+"""Builds the Bolt Titan models and skins (V227).
 
 python3 tools/build_titan.py
 
@@ -10,18 +10,18 @@ Two models:
 Each face gets its own rectangle in the texture and every texel is painted from its real 3D
 position on the body, so patterns run smoothly and continuously across the whole model.
 
-Writes into SparkMod_V226_Resources:
+Writes into SparkMod_V227_Resources:
   models/entity/bolt_titan.geo.json, models/entity/bolt_titan_god.geo.json
   textures/entity/bolt_titan.png (phase 1), bolt_titan_low1/low2/low.png (phase 2 crack stages),
   bolt_titan_p3_1/_2/_3.png (phase 3: yellow, black fragments), bolt_titan_god.png
-and SparkMod_V226_Behavior/scripts/titan_model.js (anchor points used by the effects).
+and SparkMod_V227_Behavior/scripts/titan_model.js (anchor points used by the effects).
 """
 import json, math
 import numpy as np
 from PIL import Image
 
-RP = 'SparkMod_V226_Resources/'
-BP = 'SparkMod_V226_Behavior/'
+RP = 'SparkMod_V227_Resources/'
+BP = 'SparkMod_V227_Behavior/'
 
 
 def C(o, s, mat, **kw):
@@ -69,12 +69,17 @@ CLASSIC = dict(name='classic', bones=load_classic(), tex=(256, 256), chest=np.ar
                geo_id='geometry.sparkmod.bolt_titan', file='bolt_titan.geo.json')
 
 # ============================================================================ magma golem model
-# Phases 1 and 3: a hunched magma golem - dark volcanic rock split by glowing lava cracks, huge
-# shoulders with flames burning on top, a small head sunk between them, carved copper bands on
-# the forearms and giant fists faced with copper bricks.
+# Phases 1 and 3: a hunched lightning golem - dark storm-rock split by glowing electric cracks,
+# huge shoulders with copper lightning rods and lightning bolts crackling up from them, a small
+# glowing head sunk between them, carved copper bands on the forearms and giant copper-brick fists.
 def flame(x, y, z, sx, sy):
-    """Two crossed planes with a cut-out flame texture."""
+    """Two crossed planes with a cut-out lightning-bolt texture."""
     return [C((x - sx / 2, y, z), (sx, sy, 0), 'flame', density=2), C((x, y, z - sx / 2), (0, sy, sx), 'flame', density=2)]
+
+
+def rod(x, y, z, hgt):
+    """Copper lightning rod: thin pole with a knob on top."""
+    return [C((x - .7, y, z - .7), (1.4, hgt, 1.4), 'copper_rod'), C((x - 1.1, y + hgt, z - 1.1), (2.2, 2.2, 2.2), 'copper_rod')]
 
 
 M_LEG = [C((-10, 2, -4.5), (8, 13, 9), 'magma'), C((-10.5, 0, -6.5), (9, 3.5, 11), 'magma'),
@@ -101,8 +106,9 @@ MAGMA = dict(name='magma', tex=(256, 256), chest=np.array([0, 34, -9]),
                                    C((-3.5, 32.5, -12.9), (7, 1.8, .6), 'lava_mouth', density=3)]),
     ('sparkmod_glowing_eyes', 'head', (0, 34, -6), [C((-4.4, 36, -12.9), (3, 1.6, .5), 'lava_eye', density=4),
                                                     C((1.4, 36, -12.9), (3, 1.6, .5), 'lava_eye', density=4)]),
-    ('flames', 'body', (0, 46, 0), flame(-21, 46, -2, 10, 16) + flame(-16, 45.5, 3, 7, 11) +
-                                    flame(21, 46, -2, 10, 16) + flame(16, 45.5, 3, 7, 11)),
+    ('flames', 'body', (0, 46, 0), flame(-20, 46, -3, 10, 18) + flame(-15, 45.5, 3, 7, 12) +
+                                    flame(20, 46, -3, 10, 18) + flame(15, 45.5, 3, 7, 12)
+                                    + rod(-23.5, 46, 1, 9) + rod(23.5, 46, 1, 9)),
     ('right_arm', 'body', (-19, 38, 0), M_ARM),
     ('left_arm', 'body', (19, 38, 0), [mirror(c) for c in M_ARM]),
     ('right_leg', 'root', (-6, 15, 0), M_LEG),
@@ -468,23 +474,28 @@ GLOWY = np.array([1, .86, .3])
 WHITE = np.array([1, 1, .85])
 
 
-ROCK = hexramp('#1e1416', '#2a1b1d', '#372326', '#442b2d', '#523435', '#5f3d3b')
-LAVA = np.array([1, .52, .08])
-LAVA_HOT = np.array([1, .86, .3])
+ROCK = hexramp('#121319', '#1a1c24', '#23262f', '#2d303b', '#373b48', '#424656')
+LAVA = np.array([1, .82, .18])          # electric yellow
+LAVA_HOT = np.array([1, 1, .82])        # white-hot core of the cracks
 COPPER = hexramp('#7a3a24', '#9a4c2f', '#b8613d', '#d27a51', '#e69468', '#f2ad83')
 
 
 def paint_magma(mat, P, N, s, t, w, h, n1, n2, rim, variant, stage, fname):
     """m1 = phase 1 (crust mostly intact), m3 = phase 3 (hotter; more lava as HP drops)."""
     heat = {('m1', 0): .0, ('m3', 1): .25, ('m3', 2): .5, ('m3', 3): .8}[(variant, stage)]
-    if mat == 'flame':
-        u = s - .5
-        top = .1 + np.abs(u) * 1.4 + vnoise(np.stack([s * 3, t * 0, t * 0], -1), 1.0, 5) * .25
-        shape = (t > top) & (np.abs(u) < .48)
-        col = np.zeros((h, w, 3))
-        g = np.clip((t - top) / .5, 0, 1)
-        col[:] = np.where(g[..., None] > .55, [1, .95, .55], np.where(g[..., None] > .25, [1, .65, .1], [.95, .3, .05]))
+    if mat == 'flame':  # zig-zag lightning bolt (t=0 top, t=1 bottom)
+        pts = np.array([(.62, 0), (.3, .38), (.55, .4), (.25, .78), (.5, .8), (.35, 1)])
+        cx = np.interp(t, pts[:, 1], pts[:, 0])
+        width = .13 * (1 - np.abs(t - .45) * .8) + .03
+        d = np.abs(s - cx)
+        shape = d < width
+        col = np.zeros((h, w, 3)) + [1, .82, .2]
+        col[d < width * .5] = [1, 1, .85]
         return col, shape.astype(float)
+    if mat == 'copper_rod':
+        col = ramp(np.clip(.4 + n2 * .4 + (1 - t) * .2, 0, .999), COPPER)
+        col[np.abs(s - .5) < .12] = COPPER[5]
+        return col, None
     if mat in ('lava_eye', 'lava_mouth'):
         col = np.zeros((h, w, 3)) + LAVA_HOT
         if mat == 'lava_mouth':
@@ -505,10 +516,10 @@ def paint_magma(mat, P, N, s, t, w, h, n1, n2, rim, variant, stage, fname):
         col[np.roll(g, 1, axis=0) & ~g] = COPPER[5]
         col[g] = ROCK[1]
         return col, None
-    # volcanic rock with glowing lava cracks
+    # storm-rock with glowing electric cracks
     col = ramp(np.clip(.25 + n1 * .5 + n2 * .2 - rim * .5, 0, .999), ROCK)
     crack = np.maximum(ridge(P, .085, 101, .032 + heat * .05), ridge(P, .19, 103, .022 + heat * .035) * .9)
-    pools = np.clip((fbm(P, .14, 107, 2) - (.8 - heat * .3)) * 6, 0, 1)   # molten patches
+    pools = np.clip((fbm(P, .14, 107, 2) - (.8 - heat * .3)) * 6, 0, 1)   # charged patches
     g = np.clip(np.maximum(crack, pools), 0, 1)
     col = col * (1 - g[..., None] * .7) + LAVA * g[..., None] * .7
     col = np.where(g[..., None] > .78, LAVA_HOT, np.where(g[..., None] > .5, LAVA, col))
@@ -629,12 +640,13 @@ def write_anchors():
     M = {b[0]: b for b in MAGMA['bones']}
     rocks[1] = [to_frame(p) for p in centers(M['rocks_a_body'][3])]      # phase 1 crust chunks
     meyes = [to_frame(p) for p in centers(M['sparkmod_glowing_eyes'][3])]
-    flames = [to_frame(p) for p in ((-21, 52, -2), (21, 52, -2), (-16, 50, 3), (16, 50, 3))]
+    flames = [to_frame(p) for p in ((-20, 56, -3), (20, 56, -3), (-15, 52, 3), (15, 52, 3))]
+    rods = [to_frame(p) for p in ((-23.5, 57.1, 1), (23.5, 57.1, 1))]
     js = ('// Generated by tools/build_titan.py - effect anchor points, [forward, right, up] in blocks at scale 1.\n'
           f'export const EYES={json.dumps(eyes)};\nexport const CHEST={json.dumps(chest)};\n'
           f'export const ROCKS={json.dumps(rocks)};\n'
           f'export const MAGMA_EYES={json.dumps(meyes)};\nexport const MAGMA_CHEST={json.dumps(to_frame(MAGMA["chest"]))};\n'
-          f'export const MAGMA_FLAMES={json.dumps(flames)};\n'
+          f'export const MAGMA_FLAMES={json.dumps(flames)};\nexport const MAGMA_RODS={json.dumps(rods)};\n'
           f'export const GOD_EYES={json.dumps(geyes)};\nexport const GOD_CHEST={json.dumps(to_frame(GOD["chest"]))};\n'
           f'export const WINGS={json.dumps([to_frame(p) for p in centers([c for c in G["god_halo"][3] if c["size"][0] > 2])][::2])};\n')
     open(BP + 'scripts/titan_model.js', 'w').write(js)
