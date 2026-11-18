@@ -1,0 +1,36 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:block": {
+    "description": {
+      "identifier": "sparkmod:scorched_grass",
+      "menu_category": {
+        "category": "nature"
+      }
+    },
+    "components": {
+      "minecraft:display_name": "Scorched Grass",
+      "minecraft:geometry": "minecraft:geometry.full_block",
+      "minecraft:material_instances": {
+        "*": {
+          "texture": "sm_scorched_grass_side",
+          "render_method": "opaque"
+        },
+        "up": {
+          "texture": "sm_scorched_grass_top",
+          "render_method": "opaque"
+        },
+        "down": {
+          "texture": "sm_scorched_dirt",
+          "render_method": "opaque"
+        }
+      },
+      "minecraft:destructible_by_mining": {
+        "seconds_to_destroy": 0.6
+      },
+      "minecraft:destructible_by_explosion": {
+        "explosion_resistance": 0.6
+      },
+      "minecraft:loot": "loot_tables/blocks/scorched_grass.json"
+    }
+  }
+}

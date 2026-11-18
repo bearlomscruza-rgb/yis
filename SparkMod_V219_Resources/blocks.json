@@ -1,0 +1,13 @@
+{
+  "format_version": [
+    1,
+    1,
+    0
+  ],
+  "sparkmod:spark_altar": {
+    "sound": "stone"
+  },
+  "sparkmod:scorched_grass": {
+    "sound": "grass"
+  }
+}

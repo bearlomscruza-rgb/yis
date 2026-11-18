@@ -1,13 +1,13 @@
 """Synthesizes SparkMod's custom Bolt Titan sound effects.
 
 Run from the repo root:  python3 tools/make_sfx.py
-Writes .ogg files into SparkMod_V218_Resources/sounds/sparkmod/ (needs numpy + ffmpeg).
+Writes .ogg files into SparkMod_V219_Resources/sounds/sparkmod/ (needs numpy + ffmpeg).
 """
 import os, subprocess, sys, tempfile, wave
 import numpy as np
 
 SR = 44100
-OUT = sys.argv[1] if len(sys.argv) > 1 else 'SparkMod_V218_Resources/sounds/sparkmod'
+OUT = sys.argv[1] if len(sys.argv) > 1 else 'SparkMod_V219_Resources/sounds/sparkmod'
 
 
 def t(sec):
@@ -272,6 +272,64 @@ def demon(seed):
     return (v + breath + crackle(n, 300, rng) * .5) * env(n, .3, .6)
 
 
+def shine(seed):
+    """Blinding light: a bright major chord swelling up with shimmering sparkles."""
+    rng = np.random.default_rng(seed)
+    tt = t(3.2)
+    n = len(tt)
+    swell = np.interp(tt, [0, 2.4, 3.0, 3.2], [0, 1, .8, 0]) ** 1.4
+    chord = sum(osc(np.full(n, f) * (1 + .002 * np.sin(2 * np.pi * (4 + i) * tt)), 'saw') for i, f in enumerate((261.6, 329.6, 392.0, 523.3, 659.3, 784.0)))
+    chord = lowpass(chord, 800 + 5000 * swell) / 4
+    shimmer = osc(2093 + 400 * np.sin(2 * np.pi * 9 * tt), 'sin') * (np.sin(2 * np.pi * 13 * tt) > .6) * .25
+    sparkle = highpass(crackle(n, 300 + 2500 * swell, rng, .002), 3000) * .6
+    sub = osc(np.full(n, 65.4), 'sin') * .5
+    return dist((chord + shimmer + sparkle + sub) * swell, 1.6)
+
+
+def eclipse(seed):
+    """Deep dissonant drone as the sun goes black."""
+    rng = np.random.default_rng(seed)
+    tt = t(5.0)
+    n = len(tt)
+    e = np.interp(tt, [0, 1.2, 4.0, 5.0], [0, 1, 1, 0])
+    f = 41.2 * np.interp(tt, [0, 5], [1.0, .94])
+    drone = osc(f, 'saw') + osc(f * 1.414, 'saw') * .6 + osc(f * 2.02, 'saw') * .4 + osc(f * .5, 'sin') * .8
+    drone = lowpass(drone, 300 + 200 * np.sin(2 * np.pi * .4 * tt) ** 2)
+    wind = lowpass(highpass(rng.uniform(-1, 1, n), 200), 900) * (.5 + .5 * np.sin(2 * np.pi * .25 * tt)) * .8
+    bell = osc(np.full(n, 155.6), 'sin') * np.exp(-tt * .9) * .5 + osc(np.full(n, 233.1), 'sin') * np.exp(-tt * .7) * .3
+    return dist((drone + wind + bell) * e, 2.0)
+
+
+def godmode(seed):
+    """Spark God awakening: huge sub hit, choir-like stab, electric storm."""
+    rng = np.random.default_rng(seed)
+    tt = t(3.5)
+    n = len(tt)
+    hit = osc(55 * np.exp(-tt * 3) + 27, 'sin') * np.exp(-tt * 1.8) * 1.8
+    vib = 1 + .01 * np.sin(2 * np.pi * 5 * tt)
+    choir = sum(osc(np.full(n, f) * vib * (1 + .004 * k), 'saw') for k, f in enumerate((130.8, 196.0, 261.6, 311.1, 392.0)))
+    choir = lowpass(choir, 1800) * np.interp(tt, [0, .08, 2.5, 3.5], [0, 1, .6, 0]) / 3
+    storm = crackle(n, 3000 * np.exp(-tt * .8), rng) * .9
+    return dist(hit + choir + storm, 2.4) * env(n, .001, .6)
+
+
+def sun_explode(seed):
+    """The sun bursting: rising whine into a colossal, long boom."""
+    rng = np.random.default_rng(seed)
+    tt = t(6.0)
+    n = len(tt)
+    k = int(SR * 1.2)
+    p = np.clip(tt / 1.2, 0, 1)
+    whine = osc(200 * (12 ** p), 'saw') * p ** 2 * (tt < 1.2) * .5
+    tb = np.maximum(tt - 1.2, 0)
+    on = tt >= 1.2
+    boom = osc(40 * np.exp(-tb * 1.0) + 18, 'sin') * np.exp(-tb * .9) * 2.0 * on
+    roar = lowpass(rng.uniform(-1, 1, n), 1800 * np.exp(-tb * 1.2) + 70) * np.exp(-tb * .8) * 3.5 * on
+    rumble = lowpass(crackle(n, 900 * np.exp(-tb * .7) * on, rng, .015), 2000) * 2.0
+    zaps = crackle(n, 2500 * np.exp(-tb * 1.4) * on, rng) * .8
+    return dist(whine + boom + roar + rumble + zaps, 2.6) * env(n, .01, 2.0)
+
+
 if __name__ == '__main__':
     for i in range(3):
         write(f'zap{i + 1}', zap(10 + i))
@@ -291,3 +349,7 @@ if __name__ == '__main__':
     write('explode_big', explode_big(120))
     write('hum', hum(130))
     write('demon', demon(140))
+    write('shine', shine(150))
+    write('eclipse', eclipse(160))
+    write('godmode', godmode(170))
+    write('sun_explode', sun_explode(180))

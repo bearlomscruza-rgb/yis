@@ -1,0 +1,27 @@
+{
+  "resource_pack_name": "SparkMod V8",
+  "texture_name": "atlas.terrain",
+  "texture_data": {
+    "spark_altar": {
+      "textures": "textures/blocks/spark_altar"
+    },
+    "spark_castle_stone": {
+      "textures": "textures/blocks/spark_castle_stone"
+    },
+    "spark_yellow_grass": {
+      "textures": "textures/blocks/spark_yellow_grass"
+    },
+    "spark_yellow_leaves": {
+      "textures": "textures/blocks/spark_yellow_leaves"
+    },
+    "sm_scorched_grass_top": {
+      "textures": "textures/blocks/sm_scorched_grass_top"
+    },
+    "sm_scorched_grass_side": {
+      "textures": "textures/blocks/sm_scorched_grass_side"
+    },
+    "sm_scorched_dirt": {
+      "textures": "textures/blocks/sm_scorched_dirt"
+    }
+  }
+}
