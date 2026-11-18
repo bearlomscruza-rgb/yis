@@ -1,4 +1,4 @@
-"""Builds the Bolt Titan models and skins (V227).
+"""Builds the Bolt Titan models and skins (V228).
 
 python3 tools/build_titan.py
 
@@ -10,18 +10,18 @@ Two models:
 Each face gets its own rectangle in the texture and every texel is painted from its real 3D
 position on the body, so patterns run smoothly and continuously across the whole model.
 
-Writes into SparkMod_V227_Resources:
+Writes into SparkMod_V228_Resources:
   models/entity/bolt_titan.geo.json, models/entity/bolt_titan_god.geo.json
   textures/entity/bolt_titan.png (phase 1), bolt_titan_low1/low2/low.png (phase 2 crack stages),
   bolt_titan_p3_1/_2/_3.png (phase 3: yellow, black fragments), bolt_titan_god.png
-and SparkMod_V227_Behavior/scripts/titan_model.js (anchor points used by the effects).
+and SparkMod_V228_Behavior/scripts/titan_model.js (anchor points used by the effects).
 """
 import json, math
 import numpy as np
 from PIL import Image
 
-RP = 'SparkMod_V227_Resources/'
-BP = 'SparkMod_V227_Behavior/'
+RP = 'SparkMod_V228_Resources/'
+BP = 'SparkMod_V228_Behavior/'
 
 
 def C(o, s, mat, **kw):
@@ -51,6 +51,8 @@ def load_classic():
         for c in b.get('cubes', []):
             f = c['uv']['north'] if 'north' in c['uv'] else next(iter(c['uv'].values()))
             mat = PATCH_MAT[tuple(f['uv'])]
+            if mat == 'skull':
+                continue          # skull belt removed (V228)
             if b['name'].startswith('rocks_'):
                 mat = 'rock'
             kw = {}
