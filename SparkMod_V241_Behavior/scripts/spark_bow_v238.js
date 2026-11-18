@@ -229,29 +229,33 @@ function fireJudgment(p){
  system.runTimeout(()=>blastCrater(d,impact),3);
  safe(()=>p.onScreenDisplay.setActionBar('§6⚡ Storm Judgment fired! §7Reactivate the bow at the Spark Shrine (10 tokens) - 10 min cooldown.'));
 }
-// V240: a MASSIVE crater - a round pit about 19 blocks across, narrowing into a wide round
-// shaft that goes all the way down to bedrock.
+// V241: a crater 50 blocks across and 40 blocks deep - straight round walls stepping in at the
+// bottom; any hill/trees up to 15 blocks above it are blasted away too. Dug over a few ticks.
+const CRATER_R=25,CRATER_DEPTH=40,CRATER_ABOVE=15;
 function blastCrater(d,at){
  const x=Math.floor(at.x),y=Math.floor(at.y),z=Math.floor(at.z);
  const floor=d.id==='minecraft:overworld'?-59:d.id==='minecraft:nether'?5:0;
- const R=9;
- const ring=[];for(let k=0;k<12;k++){const a=k*Math.PI/6;ring.push([x+Math.round(Math.cos(a)*(R+1)),z+Math.round(Math.sin(a)*(R+1))]);}
- if(d.id==='minecraft:overworld'&&[[x,z],...ring].some(([cx,cz])=>safe(()=>protectedArea({x:cx,y,z:cz}),false))){
-  F.shock(d,at,12,F.C.white,1);return;                        // never blast a protected Spark structure
+ // Never blast a protected Spark structure anywhere inside the crater.
+ if(d.id==='minecraft:overworld'){
+  for(let dx=-CRATER_R-2;dx<=CRATER_R+2;dx+=6)for(let dz=-CRATER_R-2;dz<=CRATER_R+2;dz+=6){
+   if(dx*dx+dz*dz>(CRATER_R+2)**2)continue;
+   if(safe(()=>protectedArea({x:x+dx,y,z:z+dz}),false)){F.shock(d,at,CRATER_R,F.C.white,1);return;}
+  }
  }
  const fill=(x1,y1,z1,x2,y2,z2)=>safe(()=>d.runCommand(`fill ${x1} ${y1} ${z1} ${x2} ${y2} ${z2} air`));
- // round slices: [radius, from y, to y]
- const layers=[[9,y-4,y+8],[7,y-9,y-5],[5,y-13,y-10]];
- for(const [r,y1,y2] of layers)for(let dx=-r;dx<=r;dx++){
-  const hw=Math.floor(Math.sqrt(r*r-dx*dx));
-  fill(x+dx,y1,z-hw,x+dx,y2,z+hw);
+ const bottom=Math.max(floor,y-CRATER_DEPTH+1);          // 40 blocks deep (never below bedrock level)
+ // [radius, from, to]: full 50-block-wide walls, then two narrowing steps at the bottom
+ const layers=[[CRATER_R,Math.max(bottom,y-33),y+CRATER_ABOVE],[21,Math.max(bottom,y-37),y-34],[15,bottom,y-38]];
+ const jobs=[];
+ for(const [r,y1,y2] of layers){
+  if(y2<y1)continue;
+  for(let dx=-r;dx<=r;dx++){const hw=Math.floor(Math.sqrt(r*r-dx*dx));jobs.push([x+dx,y1,z-hw,x+dx,y2,z+hw]);}
  }
- // the shaft to bedrock (radius 4), split so no single fill is too large
- for(let dx=-4;dx<=4;dx++){
-  const hw=Math.floor(Math.sqrt(16-dx*dx));
-  for(let top=y-14;top>floor;top-=64){const bottom=Math.max(floor,top-63);fill(x+dx,bottom,z-hw,x+dx,top,z+hw);}
- }
- F.debris(d,at,8,120);F.smoke(d,{x:at.x,y:at.y+2,z:at.z},20,4,F.C.dust,.85);
+ let i=0;
+ const step=()=>{for(let n=0;n<8&&i<jobs.length;n++,i++)fill(...jobs[i]);if(i<jobs.length)system.runTimeout(step,1);};
+ step();
+ F.debris(d,at,12,160);F.smoke(d,{x:at.x,y:at.y+2,z:at.z},30,8,F.C.dust,.85);
+ for(let k=0;k<4;k++)system.runTimeout(()=>F.shock(d,at,CRATER_R+k*4,k%2?F.C.white:F.C.gold,1.2),k*3);
 }
 // V240: a lightning strike about 10x the size of normal lightning, crashing down on the impact.
 function megaLightning(d,at){
