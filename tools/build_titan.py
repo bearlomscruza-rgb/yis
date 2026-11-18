@@ -1,28 +1,29 @@
-"""Builds the V222 Bolt Titan: a Warden-style body at 1.3x Warden size.
+"""Builds the Bolt Titan models and skins (V224).
 
 python3 tools/build_titan.py
-Writes (into SparkMod_V223_Resources):
-  models/entity/bolt_titan.geo.json                 the model
-  textures/entity/bolt_titan.png                    phase 1 (stone, moss, robe, gold, skulls)
-  textures/entity/bolt_titan_low1/low2/low.png      phase 2 (amber, cracks spread from the chest)
-  textures/entity/bolt_titan_p3_1/_2/_3.png         phase 3 (yellow; black fragments as HP drops)
-  textures/entity/bolt_titan_god.png                Spark God (black with yellow lightning veins)
-and SparkMod_V223_Behavior/scripts/titan_model.js  (anchor points the scripts use for effects).
 
-Every face gets its own rectangle in the texture, and every texel is painted from its real
-3D position on the body, so patterns (cracks, veins, moss) run continuously across faces.
+Two models:
+  * classic  - the original Bolt Titan (horns, robe, skulls, rocks, chest core), read from
+               tools/titan_classic.geo.json, used for phases 1-3.
+  * god      - the Spark God statue (halo, crest, ribbons, big glowing chest, sword and spear),
+               used while god mode is active.
+Each face gets its own rectangle in the texture and every texel is painted from its real 3D
+position on the body, so patterns run smoothly and continuously across the whole model.
+
+Writes into SparkMod_V224_Resources:
+  models/entity/bolt_titan.geo.json, models/entity/bolt_titan_god.geo.json
+  textures/entity/bolt_titan.png (phase 1), bolt_titan_low1/low2/low.png (phase 2 crack stages),
+  bolt_titan_p3_1/_2/_3.png (phase 3: yellow, black fragments), bolt_titan_god.png
+and SparkMod_V224_Behavior/scripts/titan_model.js (anchor points used by the effects).
 """
 import json, math
 import numpy as np
 from PIL import Image
 
-RP = 'SparkMod_V223_Resources/'
-BP = 'SparkMod_V223_Behavior/'
-TEX_W, TEX_H = 256, 256
+RP = 'SparkMod_V224_Resources/'
+BP = 'SparkMod_V224_Behavior/'
 
-# ----------------------------------------------------------------------------- model
-# Units are model pixels (16 = 1 block). Front of the model is -z. A cube is
-# (origin, size, material, extra) where extra may hold inflate / density.
+
 def C(o, s, mat, **kw):
     return dict(origin=list(o), size=list(s), mat=mat, **kw)
 
@@ -35,76 +36,86 @@ def mirror(c):
     return m
 
 
-R_LEG = [C((-9.5, 0, -4), (8, 17, 8), 'skin'), C((-10, 0, -5.5), (9, 3, 10), 'skin_dark')]
-R_ARM = [C((-21, 6, -5.2), (10.4, 36, 10.4), 'skin'),
-         C((-21, 15, -5.2), (10.4, 3, 10.4), 'gold', inflate=.4),
-         C((-21, 3.2, -6.2), (3.2, 3, 3), 'skin_dark'), C((-17.6, 3.2, -6.2), (3.2, 3, 3), 'skin_dark'),
-         C((-14.2, 3.2, -6.2), (3.0, 3, 3), 'skin_dark')]
-BODY = [C((-12, 17, -7), (24, 27, 14), 'skin'),
-        C((-12, 17, -7), (24, 19, 14), 'robe', inflate=.6),
-        C((-13, 40, -7.5), (26, 4.5, 15), 'robe', inflate=.2),
-        C((-12, 24, -7), (24, 2.6, 14), 'gold', inflate=.9),
-        C((-4.5, 31.5, -7.7), (2, 9, .6), 'gold'), C((2.5, 31.5, -7.7), (2, 9, .6), 'gold')]
-SKULLS = [C((x, 22.6, -9.6), (3.2, 3.6, 2.2), 'skull', density=4) for x in (-10, -5.4, 2.2, 6.8)]
-HEAD = [C((-10.5, 44, -6.5), (21, 20, 13), 'skin'),
-        C((-11.2, 60, -7.2), (22.4, 4.5, 14.4), 'robe'),
-        C((-10.5, 57, -7.3), (21, 2, 1), 'skin_dark'),
-        C((-6.5, 46, -6.95), (13, 3.2, .5), 'mouth', density=2)]
-EYES = [C((-7.6, 52, -7.1), (3.6, 2.4, .7), 'eye', density=5)]
-TENDRIL_R = [C((-24, 51, 0), (13.5, 16, 0), 'tendril')]
-CORE = [C((-2.5, 33.5, -8.5), (5, 5, 1.2), 'core', density=4), C((-1.5, 34.5, -9.0), (3, 3, .6), 'core', density=4)]
-# Spark God parts (only visible in god mode): a big round glowing chest core, a halo behind the
-# head, a crest, a curved sword in the right hand and a long spear in the left. Built from small
-# cubes like a voxel statue.
-HEART = [C((-6.5, 28.5, -9.4), (13, 13, 1.6), 'disc', density=2)]
-HALO = [C((math.cos(a) * 17 - 1.3, 57 + math.sin(a) * 17 - 1.3, 8), (2.6, 2.6, 1.2), 'halo')
-        for a in [i * 2 * math.pi / 30 for i in range(30)]]
-CREST = [C((-0.9, 64.6, -1), (1.8, 7.5, 1.8), 'crest'), C((-3, 68.6, -1), (6, 1.6, 1.8), 'crest')]
-SWORD = ([C((-18.3, 2.2, -8.4), (5.2, 4.6, 1.4), 'crest'),                      # guard
-          C((-16.6, 3.6, -11.4), (1.8, 1.8, 3), 'crest')]                       # pommel-side grip
-         + [C((-16.3, 3.2 + (i / 17) ** 2 * 13, -10 - i * 2.4), (1.2, 3.4 - max(0, i - 14) * .8, 2.6), 'blade')
-            for i in range(18)])
-SPEAR = ([C((15.8 + .38 * (y - 4.5) - 1.1, y, -7.6 - .08 * (y - 4.5)), (2.2, 2.2, 2.2), 'staff')
-          for y in [0 + k * 2 for k in range(34)]]
-         + [C((15.8 + .38 * (y - 4.5) - w / 2, y, -7.6 - .08 * (y - 4.5) - .3), (w, 2.2, 2.8), 'blade')
-            for y, w in ((68, 5), (70, 4.2), (72, 3.2), (74, 2.2), (76, 1.2))])
-ROCKS = {  # group: [(bone, cube)]
-    'a': [('body', C((-8, 21, 6.6), (5, 5, 4), 'rock')), ('right_arm', C((-23.2, 12, -2), (4, 5, 4.5), 'rock')),
-          ('right_leg', C((-11.5, 8, 2), (4, 4.5, 4), 'rock'))],
-    'b': [('body', C((3, 27, 6.6), (6, 6, 4.2), 'rock')), ('left_arm', C((19.2, 12, -2), (4, 5, 4.5), 'rock')),
-          ('left_leg', C((7.5, 8, 2), (4, 4.5, 4), 'rock'))],
-    'c': [('body', C((-15, 41, -2.5), (7, 6.5, 7), 'rock')), ('body', C((8, 41, -2), (7, 6, 6.5), 'rock')),
-          ('right_arm', C((-23.5, 28, -1.5), (4.5, 6, 5), 'rock')), ('left_arm', C((19, 27, -1.5), (4.5, 6, 5), 'rock')),
-          ('head', C((-3, 64.3, -2), (6, 3, 5), 'rock'))],
-}
-BONES = [  # name, parent, pivot, cubes
-    ('root', None, (0, 0, 0), []),
-    ('body', 'root', (0, 17, 0), BODY + SKULLS),
-    ('head', 'body', (0, 44, 0), HEAD),
-    ('sparkmod_glowing_eyes', 'head', (0, 44, 0), EYES + [mirror(c) for c in EYES]),
-    ('right_tendril', 'head', (-10.5, 59, 0), TENDRIL_R),
-    ('left_tendril', 'head', (10.5, 59, 0), [mirror(c) for c in TENDRIL_R]),
-    ('chest_core', 'body', (0, 36, -8), CORE),
-    ('heart', 'body', (0, 35, -8.6), HEART),
-    ('god_halo', 'head', (0, 57, 8.6), HALO),
-    ('god_crest', 'head', (0, 64.6, 0), CREST),
-    ('god_sword', 'right_arm', (-16, 4, -8), SWORD),
-    ('god_spear', 'left_arm', (16, 4, -8), SPEAR),
-    ('right_arm', 'body', (-16, 42, 0), R_ARM),
-    ('left_arm', 'body', (16, 42, 0), [mirror(c) for c in R_ARM]),
-    ('right_leg', 'root', (-5.5, 17, 0), R_LEG),
-    ('left_leg', 'root', (5.5, 17, 0), [mirror(c) for c in R_LEG]),
-]
-SHORT = {'body': 'body', 'right_arm': 'rarm', 'left_arm': 'larm', 'right_leg': 'rleg', 'left_leg': 'lleg', 'head': 'head'}
-PIVOT = {b[0]: b[2] for b in BONES}
-for g, items in ROCKS.items():
-    by = {}
-    for bone, cube in items:
-        by.setdefault(bone, []).append(cube)
-    for bone, cubes in by.items():
-        BONES.append((f'rocks_{g}_{SHORT[bone]}', bone, PIVOT[bone], cubes))
+# ============================================================================ classic model
+PATCH_MAT = {(0, 0): 'skin', (32, 0): 'skin_dark', (64, 0): 'robe', (192, 0): 'robe', (96, 0): 'leather',
+             (128, 0): 'skull', (224, 0): 'gold', (0, 64): 'mossy', (32, 64): 'robe', (128, 64): 'plate',
+             (160, 64): 'leather', (224, 96): 'gold', (240, 96): 'core', (224, 80): 'eye', (240, 80): 'eye'}
+DENSITY = {'skull': 4, 'eye': 5, 'core': 4, 'plate': 2}
 
-# ----------------------------------------------------------------------------- faces + atlas
+
+def load_classic():
+    g = json.load(open('tools/titan_classic.geo.json'))['minecraft:geometry'][0]
+    bones = []
+    for b in g['bones']:
+        cubes = []
+        for c in b.get('cubes', []):
+            f = c['uv']['north'] if 'north' in c['uv'] else next(iter(c['uv'].values()))
+            mat = PATCH_MAT[tuple(f['uv'])]
+            if b['name'].startswith('rocks_'):
+                mat = 'rock'
+            kw = {}
+            if c.get('inflate'):
+                kw['inflate'] = c['inflate']
+            if mat in DENSITY:
+                kw['density'] = DENSITY[mat]
+            if f['uv_size'][0] < 0:
+                kw['mirrored'] = True
+            cubes.append(C(c['origin'], c['size'], mat, **kw))
+        bones.append((b['name'], b.get('parent'), tuple(b['pivot']), cubes))
+    return bones
+
+
+CLASSIC = dict(name='classic', bones=load_classic(), tex=(256, 256), chest=np.array([2.7, 42, -8.6]),
+               geo_id='geometry.sparkmod.bolt_titan', file='bolt_titan.geo.json')
+
+# ============================================================================ god statue model
+# Front is -z. Built like a voxel statue: a tapered robe-like base, broad armoured chest with a
+# big round glowing core, helmet with a crest, a large halo, ribbon arcs rising from the shoulders,
+# banded arms holding a curved sword and a long spear.
+def ring(cx, cy, z, r, n, size, mat, a0=0, a1=2 * math.pi):
+    out = []
+    for i in range(n):
+        a = a0 + (a1 - a0) * i / (n - 1 if a1 - a0 < 2 * math.pi - 1e-6 else n)
+        out.append(C((cx + math.cos(a) * r - size / 2, cy + math.sin(a) * r - size / 2, z), (size, size, 1.4), mat))
+    return out
+
+
+SKIRT = [C((-w / 2, y, -d / 2), (w, 4.2, d), 'armor') for y, w, d in
+         ((0, 7, 7), (4, 9, 8), (8, 11, 9), (12, 13, 10), (16, 15, 11), (20, 16, 11))]
+TORSO = (SKIRT + [C((-7.5, 24, -5.5), (15, 6, 11), 'armor'),           # waist
+                  C((-10, 30, -6.5), (20, 6, 13), 'armor'),           # lower chest
+                  C((-12.5, 36, -7), (25, 12, 14), 'armor'),          # chest
+                  C((-20, 42, -7.5), (8.5, 8, 15), 'armor'), C((11.5, 42, -7.5), (8.5, 8, 15), 'armor'),  # pauldrons
+                  C((-4, 48, -4), (8, 3, 8), 'armor')]                # neck
+         + ring(0, 50, 7.4, 15, 14, 2.4, 'ribbon', math.radians(-15), math.radians(195)))  # shoulder ribbons
+GOD_HEAD = [C((-6.5, 51, -6.5), (13, 12, 13), 'armor'), C((-7, 55.5, -7.1), (14, 1.6, 1), 'armor'),
+            C((-1, 63, -1), (2, 8, 2), 'crest'), C((-3.2, 67, -1), (6.4, 1.8, 2), 'crest')]
+GOD_EYES = [C((-5, 57.6, -7.2), (3.6, 1.6, .6), 'eye', density=5)]
+GOD_HALO = ring(0, 59, 9, 21, 34, 2.8, 'halo')
+G_ARM = [C((-22, 26, -4.5), (9, 20, 9), 'armor'), C((-21.5, 10, -4), (8, 16, 8), 'armor'),
+         C((-22, 4, -4.5), (9, 6, 9), 'armor')] + [C((-22, y, -4.5), (9, 1.6, 9), 'band', inflate=.45) for y in (14, 20, 30, 37)]
+SWORD = ([C((-20.3, 4.6, -7.4), (5.4, 1.6, 2.4), 'crest'), C((-18.5, 5.2, -10), (1.8, 1.6, 3), 'crest')]
+         + [C((-18.2, 5.2 + (i / 19) ** 1.7 * 16, -12 - i * 2.4), (1.2, 3.4 - max(0, i - 16) * .8, 2.6), 'blade')
+            for i in range(20)])
+SPEAR = ([C((17.5 + .38 * (y - 7) - 1.1, y, -6.6 - .08 * (y - 7)), (2.2, 2.2, 2.2), 'staff')
+          for y in [-12 + k * 2 for k in range(44)]]
+         + [C((17.5 + .38 * (y - 7) - w / 2, y, -6.9 - .08 * (y - 7)), (w, 2.2, 2.8), 'blade')
+            for y, w in ((76, 5), (78, 4.2), (80, 3.2), (82, 2.2), (84, 1.2))])
+GOD = dict(name='god', tex=(256, 256), chest=np.array([0, 42, -8.8]),
+           geo_id='geometry.sparkmod.bolt_titan_god', file='bolt_titan_god.geo.json', bones=[
+    ('root', None, (0, 0, 0), []),
+    ('body', 'root', (0, 24, 0), TORSO),
+    ('heart', 'body', (0, 42, -8.6), [C((-7, 35.5, -9.2), (14, 13, 1.6), 'disc', density=2)]),
+    ('head', 'body', (0, 51, 0), GOD_HEAD),
+    ('god_halo', 'head', (0, 59, 9), GOD_HALO),
+    ('sparkmod_glowing_eyes', 'head', (0, 51, 0), GOD_EYES + [mirror(c) for c in GOD_EYES]),
+    ('right_arm', 'body', (-17, 45, 0), G_ARM + SWORD),
+    ('left_arm', 'body', (17, 45, 0), [mirror(c) for c in G_ARM] + SPEAR),
+    ('right_leg', 'root', (-4, 24, 0), []),
+    ('left_leg', 'root', (4, 24, 0), []),
+])
+
+
 def faces(c):
     (x, y, z), (sx, sy, sz) = c['origin'], c['size']
     i = c.get('inflate', 0)
@@ -127,42 +138,38 @@ def faces(c):
     return out
 
 
-def build_atlas():
-    rects = []  # (bone, cube_index, face, tw, th)
-    for bname, _, _, cubes in BONES:
+def build_atlas(model):
+    W, H = model['tex']
+    rects = []
+    for bname, _, _, cubes in model['bones']:
         for ci, c in enumerate(cubes):
             d = c.get('density', 1)
             for fname, (_, _, _, _, w, h) in faces(c).items():
-                tw, th = max(1, math.ceil(w * d - 1e-6)), max(1, math.ceil(h * d - 1e-6))
-                rects.append([bname, ci, fname, tw, th])
+                rects.append([bname, ci, fname, max(1, math.ceil(w * d - 1e-6)), max(1, math.ceil(h * d - 1e-6))])
     rects.sort(key=lambda r: -r[4])
     x = y = shelf = 0
     place = {}
-    for r in rects:
-        bname, ci, fname, tw, th = r
-        if x + tw > TEX_W:
+    for bname, ci, fname, tw, th in rects:
+        if x + tw > W:
             x, y, shelf = 0, y + shelf, 0
         place[(bname, ci, fname)] = (x, y, tw, th)
         x += tw
         shelf = max(shelf, th)
-    assert y + shelf <= TEX_H, f'atlas overflow {y + shelf}'
-    return place
+    assert y + shelf <= H, f"{model['name']} atlas overflow {y + shelf}"
+    model['place'] = place
 
 
-PLACE = build_atlas()
-
-
-def write_geo():
+def write_geo(model):
     bones = []
-    for bname, parent, pivot, cubes in BONES:
-        b = {'name': bname, 'pivot': list(pivot)}
+    for bname, parent, pivot, cubes in model['bones']:
+        b = {'name': bname, 'pivot': [round(v, 3) for v in pivot]}
         if parent:
             b['parent'] = parent
         out = []
         for ci, c in enumerate(cubes):
             uv = {}
             for fname in faces(c):
-                x, y, tw, th = PLACE[(bname, ci, fname)]
+                x, y, tw, th = model['place'][(bname, ci, fname)]
                 uv[fname] = {'uv': [x, y], 'uv_size': [tw, th]}
             cube = {'origin': [round(v, 3) for v in c['origin']], 'size': [round(v, 3) for v in c['size']], 'uv': uv}
             if c.get('inflate'):
@@ -171,11 +178,12 @@ def write_geo():
         if out:
             b['cubes'] = out
         bones.append(b)
+    W, H = model['tex']
     geo = {'format_version': '1.12.0', 'minecraft:geometry': [{
-        'description': {'identifier': 'geometry.sparkmod.bolt_titan', 'texture_width': TEX_W, 'texture_height': TEX_H,
-                        'visible_bounds_width': 6, 'visible_bounds_height': 6, 'visible_bounds_offset': [0, 2.5, 0]},
+        'description': {'identifier': model['geo_id'], 'texture_width': W, 'texture_height': H,
+                        'visible_bounds_width': 7, 'visible_bounds_height': 7, 'visible_bounds_offset': [0, 3, 0]},
         'bones': bones}]}
-    json.dump(geo, open(RP + 'models/entity/bolt_titan.geo.json', 'w'), indent=1)
+    json.dump(geo, open(RP + 'models/entity/' + model['file'], 'w'), indent=1)
 
 
 # ----------------------------------------------------------------------------- 3D noise
@@ -276,9 +284,32 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
 
     if god:
         return paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname)
-    if mat in ('halo', 'crest', 'blade', 'staff', 'disc'):
+    if mat in ('halo', 'crest', 'blade', 'staff', 'disc', 'ribbon', 'band', 'armor'):
         return np.zeros((h, w, 3)) + GOLD[2], None
-    if mat in ('skin', 'skin_dark', 'rock', 'tendril'):
+    mossy = mat == 'mossy'
+    if mossy:
+        mat = 'skin'
+    if mat == 'leather':
+        r = {'p1': hexramp('#22160f', '#311f14', '#43291a', '#563521'), 'p2': AMBER_D, 'p3': YEL_D}[variant]
+        col = ramp(np.clip(.3 + n2 * .45 - rim, 0, .999), r)
+        stud = (np.abs(s - .5) > .32) & ((t * 5) % 1 < .3)
+        col[stud] = (GOLD if variant == 'p1' else YEL)[4]
+        mat = '_done'
+    elif mat == 'plate':
+        r = {'p1': hexramp('#3e4046', '#5a5d64', '#7a7d84', '#9da0a6', '#c2c4c8'), 'p2': AMBER, 'p3': YEL}[variant]
+        col = ramp(np.clip(.35 + (1 - (s + t) / 2) * .35 + n2 * .15 - rim * 1.5, 0, .999), r)
+        if fname == 'north':  # engraved lightning sigil
+            pts = [(.62, .08), (.3, .52), (.55, .52), (.36, .92), (.74, .4), (.5, .4)]
+            for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+                for k in np.linspace(0, 1, 40):
+                    xi = int((x0 + (x1 - x0) * k) * (w * 2 - 1e-6))
+                    yi = int((y0 + (y1 - y0) * k) * (h * 2 - 1e-6))
+                    if 0 <= yi < col.shape[0] and 0 <= xi < col.shape[1]:
+                        col[yi, xi] = (GOLD if variant == 'p1' else hexramp('#fff6c0'))[min(4, len(GOLD) - 2) if variant == 'p1' else 0]
+        mat = '_done'
+    if mat == '_done':
+        pass
+    elif mat in ('skin', 'skin_dark', 'rock', 'tendril'):
         if god:
             col = ramp(np.clip(.2 + n1 * .5 + n2 * .2 - rim, 0, .999), VOID)
         elif p3:
@@ -294,8 +325,8 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
                 col = np.where(v[..., None] > .5, r[0], col)
             if phase1:
                 m = fbm(P, .22, 5) + np.clip(up, 0, 1) * .35 + np.clip((14 - P[..., 1]) / 30, 0, .4)
-                if mat == 'rock':
-                    m = m + .2
+                if mat == 'rock' or mossy:
+                    m = m + (.35 if mossy else .2)
                 mask = m > .78
                 col[mask] = ramp(np.clip(fbm(P, .6, 6) * 1.3 - .15, 0, .999), MOSS)[mask]
             if p2:
@@ -305,7 +336,7 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
         v = .22 + fold * .3 + n2 * .25 - rim
         r = {'p1': ROBE, 'p2': OCHRE, 'p3': YEL_D, 'god': VOID}[variant]
         col = ramp(np.clip(v, 0, .999), r)
-        if fname not in ('up', 'down') and not god:
+        if fname not in ('up', 'down') and not god and h >= 10:
             band = (t < 2.2 / max(h, 1)) | (t > 1 - 2.2 / max(h, 1))
             tr = GOLD if variant == 'p1' else YEL
             col[band] = ramp(np.clip(.45 + n2[band] * .5, 0, .999), tr)
@@ -394,7 +425,11 @@ def paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname):
     """Spark God: bronze-gold armour outlined in glowing light, like a lit-up statue."""
     edge_px = np.minimum.reduce([s * w, (1 - s) * w, t * h, (1 - t) * h])  # texels to the nearest face edge
     outline = edge_px < 1.0
-    if mat in ('halo', 'crest', 'blade', 'staff'):
+    if mat == 'band':  # glowing rings around the arms
+        col = np.zeros((h, w, 3)) + GLOWY
+        col[(t > .3) & (t < .7)] = WHITE
+        return col, None
+    if mat in ('halo', 'crest', 'blade', 'staff', 'ribbon'):
         col = ramp(np.clip(.4 + n2 * .5, 0, .999), hexramp('#f0a01c', '#ffb52e', '#ffc640', '#ffd455', '#ffe070'))
         if min(w, h) >= 4:
             col[outline] = np.array([1, .93, .6])
@@ -421,18 +456,18 @@ def paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname):
     col = ramp(np.clip(v, 0, .999), r)
     # plate seams glow
     course = np.floor(P[..., 1] / 8.0)
-    seam = ((P[..., 1] % 8.0) < .9) & (abs(N[1]) < .5) & (mat in ('skin', 'skin_dark'))
+    seam = ((P[..., 1] % 8.0) < .9) & (abs(N[1]) < .5) & (mat in ('skin', 'skin_dark', 'armor'))
     col[seam] = GLOWY * .9
     # glowing rings around the arms (like the bands in the statue)
     if mat == 'skin' and abs(P[..., 0]).mean() > 10 and P[..., 1].mean() < 42:
         band = (np.abs(((P[..., 1] - 8) % 9) - 4.5) > 3.9) & (abs(N[1]) < .5)
         col[band] = GLOWY
     # V of light running down from the chest core on the torso front
-    if fname == 'north' and P[..., 2].mean() < -6.4 and abs(P[..., 0]).mean() < 13:
+    if fname == 'north' and abs(P[..., 0]).mean() < 13 and P[..., 1].mean() < 37:
         y = P[..., 1]
         x = np.abs(P[..., 0])
-        v1 = (np.abs(x - (y - 17) * .55) < .9) & (y > 17) & (y < 30)
-        v2 = (np.abs(x - (y - 17) * .55 - 3.5) < .7) & (y > 17) & (y < 30)
+        v1 = (np.abs(x - (y - 4) * .26) < .8) & (y > 4) & (y < 36)
+        v2 = (np.abs(x - (y - 4) * .14) < .6) & (y > 8) & (y < 36)
         col[v1 | v2] = GLOWY
     col[outline] = GLOWY       # every plate edge outlined in light
     return col, (tendril_alpha(P) if mat == 'tendril' else None)
@@ -455,12 +490,15 @@ def rib_alpha(s, t, cube):
     return a.astype(float)
 
 
-def paint(variant, stage=0):
-    img = np.zeros((TEX_H, TEX_W, 4))
-    for bname, _, _, cubes in BONES:
+def paint(model, variant, stage=0):
+    global CHEST
+    CHEST = model['chest']
+    W, H = model['tex']
+    img = np.zeros((H, W, 4))
+    for bname, _, _, cubes in model['bones']:
         for ci, c in enumerate(cubes):
             for fname, (tl, tr, bl, n, w, h) in faces(c).items():
-                x, y, tw, th = PLACE[(bname, ci, fname)]
+                x, y, tw, th = model['place'][(bname, ci, fname)]
                 jj, ii = np.mgrid[0:th, 0:tw]
                 s = (ii + .5) / tw
                 t = (jj + .5) / th
@@ -471,35 +509,44 @@ def paint(variant, stage=0):
     return Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8), 'RGBA')
 
 
+def to_frame(p):  # model -z is forward, model -x is the Titan's right; result in blocks
+    return [round(-p[2] / 16, 2), round(-p[0] / 16, 2), round(p[1] / 16, 2)]
+
+
+def centers(cubes):
+    return [np.array(c['origin']) + np.array(c['size']) / 2 for c in cubes]
+
+
 def write_anchors():
-    """Effect anchor points for the scripts, in blocks: [forward, right, up]."""
-    def to_frame(p):  # model -z is forward, model -x is the Titan's right
-        return [round(-p[2] / 16, 2), round(-p[0] / 16, 2), round(p[1] / 16, 2)]
-    centers = lambda cubes: [np.array(c['origin']) + np.array(c['size']) / 2 for c in cubes]
+    B = {b[0]: b for b in CLASSIC['bones']}
+    eyes = [to_frame(p) for p in centers(B['sparkmod_glowing_eyes'][3])]
     rocks = {}
-    for g, items in ROCKS.items():
-        rocks[{'a': 1, 'b': 2, 'c': 3}[g]] = [to_frame(p) for p in centers([c for _, c in items])]
-    eyes = [to_frame(p) for p in centers(EYES + [mirror(c) for c in EYES])]
-    eyes = [[e[0] + .05, e[1], e[2]] for e in eyes]
-    chest = to_frame(centers(CORE[:1])[0])
-    chest[0] += .05
-    js = ('// Generated by tools/build_titan.py - effect anchor points on the V222 Titan model.\n'
-          '// Each point is [forward, right, up] in blocks at scale 1.\n'
+    for g, lvl in (('a', 1), ('b', 2), ('c', 3)):
+        cubes = [c for name, _, _, cs in CLASSIC['bones'] if name.startswith(f'rocks_{g}_') for c in cs]
+        rocks[lvl] = [to_frame(p) for p in centers(cubes)]
+    chest = to_frame(CLASSIC['chest'])
+    G = {b[0]: b for b in GOD['bones']}
+    geyes = [to_frame(p) for p in centers(G['sparkmod_glowing_eyes'][3])]
+    js = ('// Generated by tools/build_titan.py - effect anchor points, [forward, right, up] in blocks at scale 1.\n'
           f'export const EYES={json.dumps(eyes)};\nexport const CHEST={json.dumps(chest)};\n'
-          f'export const ROCKS={json.dumps(rocks)};\nexport const HEIGHT={round(68 / 16, 2)};\n'
-          f'export const HALO={json.dumps({"center": to_frame((0, 57, 8.6)), "radius": round(17 / 16, 2)})};\n')
+          f'export const ROCKS={json.dumps(rocks)};\n'
+          f'export const GOD_EYES={json.dumps(geyes)};\nexport const GOD_CHEST={json.dumps(to_frame(GOD["chest"]))};\n'
+          f'export const HALO={json.dumps({"center": to_frame((0, 59, 9.7)), "radius": round(21 / 16, 2)})};\n'
+          f'export const SWORD_TIP={json.dumps(to_frame((-17.6, 22, -58)))};\n')
     open(BP + 'scripts/titan_model.js', 'w').write(js)
 
 
 if __name__ == '__main__':
-    write_geo()
-    write_anchors()
     E = RP + 'textures/entity/'
-    paint('p1').save(E + 'bolt_titan.png')
+    for m in (CLASSIC, GOD):
+        build_atlas(m)
+        write_geo(m)
+    write_anchors()
+    paint(CLASSIC, 'p1').save(E + 'bolt_titan.png')
     for st, name in ((1, 'low1'), (2, 'low2'), (3, 'low')):
-        paint('p2', st).save(E + f'bolt_titan_{name}.png')
+        paint(CLASSIC, 'p2', st).save(E + f'bolt_titan_{name}.png')
     for st in (1, 2, 3):
-        paint('p3', st).save(E + f'bolt_titan_p3_{st}.png')
-    paint('god', 3).save(E + 'bolt_titan_god.png')
-    used = sum(r[2] * r[3] for r in PLACE.values())
-    print('built: faces', len(PLACE), 'texels used', used, 'of', TEX_W * TEX_H)
+        paint(CLASSIC, 'p3', st).save(E + f'bolt_titan_p3_{st}.png')
+    paint(GOD, 'god', 3).save(E + 'bolt_titan_god.png')
+    for m in (CLASSIC, GOD):
+        print(m['name'], 'faces', len(m['place']), 'texels', sum(r[2] * r[3] for r in m['place'].values()))

@@ -1,0 +1,316 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "sparkmod:bolt_titan",
+      "is_spawnable": true,
+      "is_summonable": true,
+      "is_experimental": false,
+      "properties": {
+        "sparkmod:cracked": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        },
+        "sparkmod:attacking": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        },
+        "sparkmod:casting": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        },
+        "sparkmod:emerging": {
+          "type": "bool",
+          "default": false,
+          "client_sync": true
+        },
+        "sparkmod:cracks": {
+          "type": "int",
+          "range": [
+            0,
+            3
+          ],
+          "default": 0,
+          "client_sync": true
+        },
+        "sparkmod:rocks": {
+          "type": "int",
+          "range": [
+            0,
+            3
+          ],
+          "default": 0,
+          "client_sync": true
+        },
+        "sparkmod:godmode": {
+          "type": "int",
+          "range": [
+            0,
+            3
+          ],
+          "default": 0,
+          "client_sync": true
+        }
+      }
+    },
+    "components": {
+      "minecraft:type_family": {
+        "family": [
+          "bolt_titan",
+          "monster",
+          "mob"
+        ]
+      },
+      "minecraft:health": {
+        "value": 1000,
+        "max": 1000
+      },
+      "minecraft:boss": {
+        "should_darken_sky": true,
+        "hud_range": 100,
+        "name": "Bolt Titan"
+      },
+      "minecraft:collision_box": {
+        "width": 2.0,
+        "height": 3.2
+      },
+      "minecraft:movement": {
+        "value": 0.3
+      },
+      "minecraft:movement.basic": {},
+      "minecraft:navigation.walk": {
+        "avoid_water": true,
+        "can_path_over_water": false
+      },
+      "minecraft:jump.static": {},
+      "minecraft:physics": {},
+      "minecraft:pushable": {
+        "is_pushable": false,
+        "is_pushable_by_piston": false
+      },
+      "minecraft:knockback_resistance": {
+        "value": 1
+      },
+      "minecraft:attack": {
+        "damage": 12
+      },
+      "minecraft:follow_range": {
+        "value": 96
+      },
+      "minecraft:persistent": {},
+      "minecraft:fire_immune": {},
+      "minecraft:behavior.float": {
+        "priority": 0
+      },
+      "minecraft:behavior.nearest_attackable_target": {
+        "priority": 1,
+        "must_see": false,
+        "reselect_targets": true,
+        "entity_types": [
+          {
+            "filters": {
+              "test": "is_family",
+              "subject": "other",
+              "value": "player"
+            },
+            "max_dist": 96,
+            "must_see": false
+          },
+          {
+            "filters": {
+              "all_of": [
+                {
+                  "test": "is_family",
+                  "subject": "other",
+                  "value": "mob"
+                },
+                {
+                  "test": "is_family",
+                  "subject": "other",
+                  "operator": "!=",
+                  "value": "bolt_titan"
+                },
+                {
+                  "test": "is_family",
+                  "subject": "other",
+                  "operator": "!=",
+                  "value": "player"
+                }
+              ]
+            },
+            "max_dist": 64,
+            "must_see": false
+          }
+        ],
+        "scan_interval": 10
+      },
+      "minecraft:behavior.melee_attack": {
+        "priority": 3,
+        "speed_multiplier": 1.15,
+        "track_target": true,
+        "reach_multiplier": 1.95,
+        "cooldown_time": 2.0
+      },
+      "minecraft:behavior.random_stroll": {
+        "priority": 8,
+        "speed_multiplier": 0.6
+      },
+      "minecraft:behavior.look_at_player": {
+        "priority": 6,
+        "look_distance": 96,
+        "probability": 1
+      },
+      "minecraft:damage_sensor": {
+        "triggers": [
+          {
+            "cause": "lightning",
+            "deals_damage": false
+          },
+          {
+            "cause": "fall",
+            "deals_damage": false
+          },
+          {
+            "cause": "suffocation",
+            "deals_damage": false
+          },
+          {
+            "cause": "drowning",
+            "deals_damage": false
+          }
+        ]
+      },
+      "minecraft:behavior.random_look_around": {
+        "priority": 10
+      },
+      "minecraft:behavior.look_at_target": {
+        "priority": 5,
+        "look_distance": 96,
+        "probability": 1
+      },
+      "minecraft:behavior.move_towards_target": {
+        "priority": 4,
+        "speed_multiplier": 1.0,
+        "within_radius": 2.1
+      },
+      "minecraft:scale": {
+        "value": 1
+      },
+      "minecraft:behavior.hurt_by_target": {
+        "priority": 2,
+        "alert_same_type": false
+      },
+      "minecraft:experience_reward": {
+        "on_death": "50"
+      }
+    },
+    "component_groups": {
+      "sparkmod:normal_stats": {
+        "minecraft:health": {
+          "value": 1000,
+          "max": 1000
+        },
+        "minecraft:scale": {
+          "value": 1
+        },
+        "minecraft:movement": {
+          "value": 0.3
+        },
+        "minecraft:attack": {
+          "damage": 12
+        },
+        "minecraft:collision_box": {
+          "width": 2.0,
+          "height": 3.2
+        },
+        "minecraft:follow_range": {
+          "value": 96
+        },
+        "minecraft:behavior.melee_attack": {
+          "priority": 3,
+          "speed_multiplier": 1.15,
+          "track_target": true,
+          "reach_multiplier": 1.95,
+          "cooldown_time": 2.0
+        }
+      },
+      "sparkmod:enraged_stats": {
+        "minecraft:health": {
+          "value": 1500,
+          "max": 1500
+        },
+        "minecraft:scale": {
+          "value": 1.5
+        },
+        "minecraft:movement": {
+          "value": 0.45
+        },
+        "minecraft:attack": {
+          "damage": 18.0
+        },
+        "minecraft:collision_box": {
+          "width": 2.0,
+          "height": 3.2
+        },
+        "minecraft:follow_range": {
+          "value": 144
+        },
+        "minecraft:behavior.melee_attack": {
+          "priority": 3,
+          "speed_multiplier": 1.15,
+          "track_target": true,
+          "reach_multiplier": 2.92,
+          "cooldown_time": 2.0
+        }
+      },
+      "sparkmod:spawn_immobile": {
+        "minecraft:movement": {
+          "value": 0.0
+        }
+      }
+    },
+    "events": {
+      "sparkmod:rage_on": {
+        "remove": {
+          "component_groups": [
+            "sparkmod:normal_stats"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "sparkmod:enraged_stats"
+          ]
+        }
+      },
+      "sparkmod:rage_off": {
+        "remove": {
+          "component_groups": [
+            "sparkmod:enraged_stats"
+          ]
+        },
+        "add": {
+          "component_groups": [
+            "sparkmod:normal_stats"
+          ]
+        }
+      },
+      "sparkmod:emergence_on": {
+        "add": {
+          "component_groups": [
+            "sparkmod:spawn_immobile"
+          ]
+        }
+      },
+      "sparkmod:emergence_off": {
+        "remove": {
+          "component_groups": [
+            "sparkmod:spawn_immobile"
+          ]
+        }
+      }
+    }
+  }
+}
