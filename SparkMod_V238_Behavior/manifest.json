@@ -1,13 +1,13 @@
 {
   "format_version": 2,
   "header": {
-    "name": "Spark Mod V237 Behavior Pack",
+    "name": "Spark Mod V238 Behavior Pack",
     "description": "Droppable maces and Spark equipment; storage ejection and death drops.",
     "uuid": "2246c4f8-4a45-45aa-94a1-5843bc05f914",
     "version": [
       2,
       3,
-      7
+      8
     ],
     "min_engine_version": [
       1,
@@ -22,7 +22,7 @@
       "version": [
         2,
         3,
-        7
+        8
       ]
     },
     {
@@ -32,7 +32,7 @@
       "version": [
         2,
         3,
-        7
+        8
       ],
       "entry": "scripts/main.js"
     }
@@ -43,7 +43,7 @@
       "version": [
         2,
         3,
-        7
+        8
       ]
     },
     {

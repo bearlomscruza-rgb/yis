@@ -18,6 +18,7 @@ import { world, system, ItemStack, EquipmentSlot, EnchantmentTypes } from '@mine
 import { ActionFormData, ModalFormData } from '@minecraft/server-ui';
 import { issueGodArmor, rechargeSparkChest, sparkChestStatus, sparkChestAwakened } from './spark_systems_v229.js';
 import * as F from './titan_fx_v217.js';
+import { initSparkBow, forgeSparkBow, awakenSparkBow, rechargeSparkBow, sparkBowShrineLabel } from './spark_bow_v238.js';
 
 // SparkMod V25: gameplay polish pass. Requires custom item/entity/block JSON.
 // V59: Spark Dimension removed. Weapons, armor, token and gacha remain.
@@ -712,8 +713,15 @@ function altarUI(p){system.run(async()=>{
  .button('Craft Spark Mace')
  .button('Awaken Helmet — 5 Tokens').button('Awaken Chestplate — 5 Tokens')
  .button('Awaken Leggings — 5 Tokens').button('Awaken Boots — 5 Tokens').button('Awaken Held Spark Sword — 5 Tokens').button('Awaken Held Spark Mace — 5 Tokens').button('§6⚒ Spark Forge — Upgrade with Sparkite')
- .button(chestState==='charged'?(sparkChestAwakened(p)?'§7Spark Mode: charged':'§7Spark Mode: awaken the Chestplate to unlock'):'§6⚡ Recharge Spark Chestplate — 3 Tokens').button('Close');
+ .button(chestState==='charged'?(sparkChestAwakened(p)?'§7Spark Mode: charged':'§7Spark Mode: awaken the Chestplate to unlock'):'§6⚡ Recharge Spark Chestplate — 3 Tokens')
+ .button('§6⚡ Forge Spark Bow — 1 Bow + 8 Tokens');
+ // V238: Spark Bow awakening / reactivation button appears while holding a Spark Bow.
+ const bowLabel=sparkBowShrineLabel(p);
+ if(bowLabel)form.button(bowLabel);
+ form.button('Close');
  const r=await showForm(p,form);if(!r||r.canceled)return;
+ if(r.selection===9){forgeSparkBow(p);return;}
+ if(bowLabel&&r.selection===10){if(/Awaken/.test(bowLabel))awakenSparkBow(p);else if(/Reactivate/.test(bowLabel))rechargeSparkBow(p);return;}
  if(r.selection===0)craft(p,'mace');
  else if(r.selection>=1&&r.selection<=4)awakenPiece(p,r.selection-1);
  else if(r.selection===5)awakenSword(p);
@@ -1515,6 +1523,15 @@ system.runInterval(()=>{
     F.orb(v.dimension,{x:v.location.x,y:v.location.y+2.3,z:v.location.z},.8,F.C.gold,1.1,.5);
   }
 },20);
+// V238: Spark Bow hooks into the shrine economy, teams and Spark Moon awakening rules.
+initSparkBow({
+  isAlly:(a,b)=>areTeammates(a,b),
+  take:(p,n)=>take(p,I.tear,n),
+  count:p=>count(p,I.tear),
+  moon:()=>sparkMoonStatus(),
+  moonUsed:(p,m)=>Number(prop(p,'lastAwakeningMoon',-1))===m.moonId,
+  setMoonUsed:(p,m)=>setProp(p,'lastAwakeningMoon',m.moonId)
+});
 // V236: tell every player where the Spark Colosseum and Spark Shrine are when they join.
 world.afterEvents.playerSpawn.subscribe(({player,initialSpawn})=>{
   if(!initialSpawn)return;
