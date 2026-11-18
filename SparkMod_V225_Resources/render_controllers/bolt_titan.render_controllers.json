@@ -99,7 +99,7 @@
         "r": 1.0,
         "g": 0.86,
         "b": 0.18,
-        "a": "query.property('sparkmod:godmode')>0 ? 0.22+0.12*math.sin(query.life_time*480) : 0.10+0.08*math.sin(query.life_time*240)"
+        "a": "query.property('sparkmod:godmode')>0 ? 0.04+0.03*math.sin(query.life_time*240) : 0.10+0.08*math.sin(query.life_time*240)"
       },
       "part_visibility": [
         {

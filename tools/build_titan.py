@@ -1,4 +1,4 @@
-"""Builds the Bolt Titan models and skins (V224).
+"""Builds the Bolt Titan models and skins (V225).
 
 python3 tools/build_titan.py
 
@@ -10,18 +10,18 @@ Two models:
 Each face gets its own rectangle in the texture and every texel is painted from its real 3D
 position on the body, so patterns run smoothly and continuously across the whole model.
 
-Writes into SparkMod_V224_Resources:
+Writes into SparkMod_V225_Resources:
   models/entity/bolt_titan.geo.json, models/entity/bolt_titan_god.geo.json
   textures/entity/bolt_titan.png (phase 1), bolt_titan_low1/low2/low.png (phase 2 crack stages),
   bolt_titan_p3_1/_2/_3.png (phase 3: yellow, black fragments), bolt_titan_god.png
-and SparkMod_V224_Behavior/scripts/titan_model.js (anchor points used by the effects).
+and SparkMod_V225_Behavior/scripts/titan_model.js (anchor points used by the effects).
 """
 import json, math
 import numpy as np
 from PIL import Image
 
-RP = 'SparkMod_V224_Resources/'
-BP = 'SparkMod_V224_Behavior/'
+RP = 'SparkMod_V225_Resources/'
+BP = 'SparkMod_V225_Behavior/'
 
 
 def C(o, s, mat, **kw):
@@ -68,10 +68,10 @@ def load_classic():
 CLASSIC = dict(name='classic', bones=load_classic(), tex=(256, 256), chest=np.array([2.7, 42, -8.6]),
                geo_id='geometry.sparkmod.bolt_titan', file='bolt_titan.geo.json')
 
-# ============================================================================ god statue model
-# Front is -z. Built like a voxel statue: a tapered robe-like base, broad armoured chest with a
-# big round glowing core, helmet with a crest, a large halo, ribbon arcs rising from the shoulders,
-# banded arms holding a curved sword and a long spear.
+# ============================================================================ god model
+# Spark God: a sand-gold block golem carved with spiral engravings - big shoulder blocks, white
+# cloth sleeves and fringed skirt, floating carved fists with light-blue gems, a grey stone crest,
+# a gem ornament on the belt (it pulses with the heartbeat) and a glowing winged halo above.
 def ring(cx, cy, z, r, n, size, mat, a0=0, a1=2 * math.pi):
     out = []
     for i in range(n):
@@ -80,39 +80,49 @@ def ring(cx, cy, z, r, n, size, mat, a0=0, a1=2 * math.pi):
     return out
 
 
-SKIRT = [C((-w / 2, y, -d / 2), (w, 4.2, d), 'armor') for y, w, d in
-         ((0, 7, 7), (4, 9, 8), (8, 11, 9), (12, 13, 10), (16, 15, 11), (20, 16, 11))]
-TORSO = (SKIRT + [C((-7.5, 24, -5.5), (15, 6, 11), 'armor'),           # waist
-                  C((-10, 30, -6.5), (20, 6, 13), 'armor'),           # lower chest
-                  C((-12.5, 36, -7), (25, 12, 14), 'armor'),          # chest
-                  C((-20, 42, -7.5), (8.5, 8, 15), 'armor'), C((11.5, 42, -7.5), (8.5, 8, 15), 'armor'),  # pauldrons
-                  C((-4, 48, -4), (8, 3, 8), 'armor')]                # neck
-         + ring(0, 50, 7.4, 15, 14, 2.4, 'ribbon', math.radians(-15), math.radians(195)))  # shoulder ribbons
-GOD_HEAD = [C((-6.5, 51, -6.5), (13, 12, 13), 'armor'), C((-7, 55.5, -7.1), (14, 1.6, 1), 'armor'),
-            C((-1, 63, -1), (2, 8, 2), 'crest'), C((-3.2, 67, -1), (6.4, 1.8, 2), 'crest')]
-GOD_EYES = [C((-5, 57.6, -7.2), (3.6, 1.6, .6), 'eye', density=5)]
-GOD_HALO = ring(0, 59, 9, 21, 34, 2.8, 'halo')
-G_ARM = [C((-22, 26, -4.5), (9, 20, 9), 'armor'), C((-21.5, 10, -4), (8, 16, 8), 'armor'),
-         C((-22, 4, -4.5), (9, 6, 9), 'armor')] + [C((-22, y, -4.5), (9, 1.6, 9), 'band', inflate=.45) for y in (14, 20, 30, 37)]
-SWORD = ([C((-20.3, 4.6, -7.4), (5.4, 1.6, 2.4), 'crest'), C((-18.5, 5.2, -10), (1.8, 1.6, 3), 'crest')]
-         + [C((-18.2, 5.2 + (i / 19) ** 1.7 * 16, -12 - i * 2.4), (1.2, 3.4 - max(0, i - 16) * .8, 2.6), 'blade')
-            for i in range(20)])
-SPEAR = ([C((17.5 + .38 * (y - 7) - 1.1, y, -6.6 - .08 * (y - 7)), (2.2, 2.2, 2.2), 'staff')
-          for y in [-12 + k * 2 for k in range(44)]]
-         + [C((17.5 + .38 * (y - 7) - w / 2, y, -6.9 - .08 * (y - 7)), (w, 2.2, 2.8), 'blade')
-            for y, w in ((76, 5), (78, 4.2), (80, 3.2), (82, 2.2), (84, 1.2))])
-GOD = dict(name='god', tex=(256, 256), chest=np.array([0, 42, -8.8]),
+def wings():
+    """Two downward-curving glowing arcs joined in the middle (a 'W'), with short rays fanning out."""
+    out = []
+    for side in (-1, 1):
+        cx = side * 9
+        for i in range(13):
+            a = math.pi + math.pi * i / 12                     # lower half of a circle
+            x, y = cx + math.cos(a) * 9, 66 + math.sin(a) * 6.5
+            out.append(C((x - 1.2, y - 1.2, 8), (2.4, 2.4, 1.2), 'wing'))
+            if i % 2 == 0 and 0 < i < 12:                       # rays pointing outward
+                for k, sz in ((3.2, 1.6), (5.4, 1.1)):
+                    rx, ry = cx + math.cos(a) * (9 + k), 66 + math.sin(a) * (6.5 + k)
+                    out.append(C((rx - sz / 2, ry - sz / 2, 8.2), (sz, sz, .8), 'wing'))
+            if i in (0, 12):                                     # upward feather tips at the ends
+                for k in (2.6, 4.8, 6.6):
+                    out.append(C((x - .7 + side * k * .35, y + k - .7, 8.2), (1.4, 1.4, .8), 'wing'))
+    return out
+
+
+G_LEG = [C((-8, 0, -3.5), (7, 12, 7), 'cloth'), C((-8.5, 0, -4.5), (8, 3, 8.5), 'carved')]
+G_ARM = [C((-25.5, 27, -7.5), (14, 13, 15), 'carved'),                 # shoulder block
+         C((-22, 17, -4), (8, 10.5, 8), 'cloth'),                      # sleeve
+         C((-22.5, 16.5, -4.5), (9, 2, 9), 'gold_band'),
+         C((-23.5, 2, -5.5), (11, 11, 11), 'carved'),                  # floating fist
+         C((-19.2, 6.3, -6.2), (2.4, 2.4, .8), 'gem')]
+GOD = dict(name='god', tex=(256, 256), chest=np.array([0, 17.5, -9]),
            geo_id='geometry.sparkmod.bolt_titan_god', file='bolt_titan_god.geo.json', bones=[
     ('root', None, (0, 0, 0), []),
-    ('body', 'root', (0, 24, 0), TORSO),
-    ('heart', 'body', (0, 42, -8.6), [C((-7, 35.5, -9.2), (14, 13, 1.6), 'disc', density=2)]),
-    ('head', 'body', (0, 51, 0), GOD_HEAD),
-    ('god_halo', 'head', (0, 59, 9), GOD_HALO),
-    ('sparkmod_glowing_eyes', 'head', (0, 51, 0), GOD_EYES + [mirror(c) for c in GOD_EYES]),
-    ('right_arm', 'body', (-17, 45, 0), G_ARM + SWORD),
-    ('left_arm', 'body', (17, 45, 0), [mirror(c) for c in G_ARM] + SPEAR),
-    ('right_leg', 'root', (-4, 24, 0), []),
-    ('left_leg', 'root', (4, 24, 0), []),
+    ('body', 'root', (0, 14, 0), [
+        C((-10.5, 9, -7), (21, 9, 14), 'fringe'),                      # cloth skirt with fringe
+        C((-11, 17, -7.5), (22, 3, 15), 'gold_band'),                  # belt
+        C((-11.5, 20, -8), (23, 18, 16), 'carved')]),                  # torso
+    ('heart', 'body', (0, 18.5, -8.8), [C((-3, 15.5, -8.9), (6, 6, 1.2), 'ornament', density=3),
+                                        C((-1.3, 17.2, -9.4), (2.6, 2.6, .7), 'gem', density=3)]),
+    ('head', 'body', (0, 38, 0), [C((-7.5, 38, -7), (15, 14, 13), 'carved_face'),
+                                  C((-2, 51.5, -5.5), (4, 8.5, 10), 'crest')]),
+    ('sparkmod_glowing_eyes', 'head', (0, 38, 0), [C((-5, 44, -7.4), (3.2, 1.7, .5), 'eye', density=5),
+                                                   C((1.8, 44, -7.4), (3.2, 1.7, .5), 'eye', density=5)]),
+    ('god_halo', 'body', (0, 64, 8), wings()),
+    ('right_arm', 'body', (-15, 34, 0), G_ARM),
+    ('left_arm', 'body', (15, 34, 0), [mirror(c) for c in G_ARM]),
+    ('right_leg', 'root', (-4.5, 12, 0), G_LEG),
+    ('left_leg', 'root', (4.5, 12, 0), [mirror(c) for c in G_LEG]),
 ])
 
 
@@ -284,7 +294,7 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
 
     if god:
         return paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname)
-    if mat in ('halo', 'crest', 'blade', 'staff', 'disc', 'ribbon', 'band', 'armor'):
+    if mat in ('carved', 'carved_face', 'gold_band', 'ornament', 'cloth', 'fringe', 'gem', 'crest', 'wing'):
         return np.zeros((h, w, 3)) + GOLD[2], None
     mossy = mat == 'mossy'
     if mossy:
@@ -421,56 +431,76 @@ GLOWY = np.array([1, .86, .3])
 WHITE = np.array([1, 1, .85])
 
 
+SAND = hexramp('#a8772f', '#b9873a', '#c99846', '#d6a752', '#e2b660', '#ecc571', '#f4d486')
+GROOVE = np.array([.47, .32, .13])
+LIGHT = np.array([.98, .87, .58])
+CLOTH = hexramp('#b9b8c4', '#cdccd6', '#dddce4', '#e9e8ee', '#f4f3f7')
+SKY = np.array([.5, .82, .94])
+
+
+def spiral(u, v, turns=3):
+    """Square spiral (Greek-key) groove mask on a unit square."""
+    x, y = u * 2 - 1, v * 2 - 1
+    r = np.maximum(np.abs(x), np.abs(y))
+    ring = r * turns
+    k = np.floor(ring)
+    line = (ring - k) < .34
+    ang = (np.arctan2(y, x) + np.pi) / (2 * np.pi)          # 0..1 around the square
+    gap = ((ang - k * .25) % 1) < .12                     # opening rotates each ring -> spiral
+    return line & ~gap & (r < .97)
+
+
 def paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname):
-    """Spark God: bronze-gold armour outlined in glowing light, like a lit-up statue."""
-    edge_px = np.minimum.reduce([s * w, (1 - s) * w, t * h, (1 - t) * h])  # texels to the nearest face edge
-    outline = edge_px < 1.0
-    if mat == 'band':  # glowing rings around the arms
-        col = np.zeros((h, w, 3)) + GLOWY
-        col[(t > .3) & (t < .7)] = WHITE
+    if mat in ('carved', 'carved_face', 'gold_band', 'ornament'):
+        col = ramp(np.clip(.38 + n1 * .35 + n2 * .2 + (1 - t) * .12 - rim * .6, 0, .999), SAND)
+        if mat in ('carved', 'carved_face'):
+            tx, ty = max(1, round(w / 24)), max(1, round(h / 24))
+            u, v = (s * tx) % 1, (t * ty) % 1
+            g = spiral(u, v, turns=max(1, int(min(w / tx, h / ty) / 4.6)))
+            below = np.roll(g, 1, axis=0) & ~g                 # highlight under each groove
+            col[below] = LIGHT
+            col[g] = GROOVE
+            if mat == 'carved_face' and fname == 'north':     # brow and mouth carving on the face
+                col[(t > .3) & (t < .36) & (np.abs(s - .5) < .4)] = GROOVE
+                col[(t > .72) & (t < .77) & (np.abs(s - .5) < .22)] = GROOVE
+                col[(t > .38) & (t < .66)] = col[(t > .38) & (t < .66)] * .9 + .02
+        if mat == 'gold_band':
+            col[(t < .2) | (t > .8)] = LIGHT
+        if mat == 'ornament':                                 # diamond-shaped gold setting
+            d = np.abs(s - .5) + np.abs(t - .5)
+            col[d > .44] = LIGHT
+            return col, (d < .5).astype(float) if fname in ('north', 'south') else None
+        edge = np.minimum.reduce([s * w, (1 - s) * w, t * h, (1 - t) * h]) < .9
+        col[edge] = col[edge] * .78                           # crisp block edges
         return col, None
-    if mat in ('halo', 'crest', 'blade', 'staff', 'ribbon'):
-        col = ramp(np.clip(.4 + n2 * .5, 0, .999), hexramp('#f0a01c', '#ffb52e', '#ffc640', '#ffd455', '#ffe070'))
-        if min(w, h) >= 4:
-            col[outline] = np.array([1, .93, .6])
+    if mat in ('cloth', 'fringe'):
+        fold = np.sin(P[..., 0] * .9 + P[..., 2] * .9) * .5 + .5
+        col = ramp(np.clip(.35 + fold * .35 + n2 * .2 - rim * .5, 0, .999), CLOTH)
+        if fname not in ('up', 'down'):
+            trim = (t < .1) if mat == 'fringe' else ((t < .12) | (t > .88))
+            col[trim] = SAND[4]
+            col[trim & ((s * w) % 4 < 1)] = SKY            # little blue stitches in the gold trim
+        alpha = None
+        if mat == 'fringe' and fname not in ('up', 'down'):
+            strand = ((s * w) % 2.0) < 1.3
+            length = .55 + .4 * vnoise(np.stack([np.floor(s * w / 2), t * 0, t * 0], -1), 1.0, 91)
+            alpha = (~((t > length) | ((t > .5) & ~strand))).astype(float)
+        return col, alpha
+    if mat == 'gem':
+        col = np.zeros((h, w, 3)) + SKY
+        col[(s < .45) & (t < .45)] = [.85, .97, 1]
+        col[(s > .7) | (t > .7)] = [.3, .62, .78]
         return col, None
-    if mat == 'disc':  # big round glowing chest core
-        r = np.hypot(s - .5, t - .5)
-        col = np.zeros((h, w, 3))
-        for rad, c in ((.5, [.95, .62, .1]), (.44, [1, .8, .22]), (.36, [1, .9, .45]), (.25, [1, .96, .7]), (.12, [1, 1, .95])):
-            col[r < rad] = c
-        col[(np.abs(r - .4) < .025)] = [1, .7, .15]
-        if fname in ('north', 'south'):
-            return col, (r < .5).astype(float)
+    if mat == 'crest':
+        col = ramp(np.clip(.45 + n2 * .35 + (1 - t) * .2 - rim, 0, .999), hexramp('#9da2aa', '#b4b8bf', '#c9ccd2', '#dcdfe3', '#eceef0'))
         return col, None
-    if mat in ('eye',):
-        col = np.zeros((h, w, 3)) + WHITE
+    if mat == 'wing':
+        col = np.zeros((h, w, 3)) + [1, .93, .62]
+        col[(s > .25) & (s < .75) & (t > .25) & (t < .75)] = [1, 1, .9]
         return col, None
-    if mat == 'mouth':
-        return np.zeros((h, w, 3)) + GLOWY, None
-    if mat == 'core':
-        return np.zeros((h, w, 3)) + WHITE, None
-    # armour body
-    r = BRONZE
-    v = .3 + n1 * .45 + n2 * .15 + (P[..., 1] / 64) * .15 - rim * .5
-    col = ramp(np.clip(v, 0, .999), r)
-    # plate seams glow
-    course = np.floor(P[..., 1] / 8.0)
-    seam = ((P[..., 1] % 8.0) < .9) & (abs(N[1]) < .5) & (mat in ('skin', 'skin_dark', 'armor'))
-    col[seam] = GLOWY * .9
-    # glowing rings around the arms (like the bands in the statue)
-    if mat == 'skin' and abs(P[..., 0]).mean() > 10 and P[..., 1].mean() < 42:
-        band = (np.abs(((P[..., 1] - 8) % 9) - 4.5) > 3.9) & (abs(N[1]) < .5)
-        col[band] = GLOWY
-    # V of light running down from the chest core on the torso front
-    if fname == 'north' and abs(P[..., 0]).mean() < 13 and P[..., 1].mean() < 37:
-        y = P[..., 1]
-        x = np.abs(P[..., 0])
-        v1 = (np.abs(x - (y - 4) * .26) < .8) & (y > 4) & (y < 36)
-        v2 = (np.abs(x - (y - 4) * .14) < .6) & (y > 8) & (y < 36)
-        col[v1 | v2] = GLOWY
-    col[outline] = GLOWY       # every plate edge outlined in light
-    return col, (tendril_alpha(P) if mat == 'tendril' else None)
+    if mat == 'eye':
+        return np.zeros((h, w, 3)) + [1, .95, .7], None
+    return np.zeros((h, w, 3)) + SAND[3], None
 
 
 def tendril_alpha(P):
@@ -531,8 +561,7 @@ def write_anchors():
           f'export const EYES={json.dumps(eyes)};\nexport const CHEST={json.dumps(chest)};\n'
           f'export const ROCKS={json.dumps(rocks)};\n'
           f'export const GOD_EYES={json.dumps(geyes)};\nexport const GOD_CHEST={json.dumps(to_frame(GOD["chest"]))};\n'
-          f'export const HALO={json.dumps({"center": to_frame((0, 59, 9.7)), "radius": round(21 / 16, 2)})};\n'
-          f'export const SWORD_TIP={json.dumps(to_frame((-17.6, 22, -58)))};\n')
+          f'export const WINGS={json.dumps([to_frame(p) for p in centers([c for c in G["god_halo"][3] if c["size"][0] > 2])][::2])};\n')
     open(BP + 'scripts/titan_model.js', 'w').write(js)
 
 

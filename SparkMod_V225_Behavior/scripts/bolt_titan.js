@@ -1,7 +1,7 @@
 import {world,system,ItemStack,InputPermissionCategory,WeatherType} from '@minecraft/server';
 import {recordTitanLightning} from './titan_player_damage_v201.js';
 import * as F from './titan_fx_v217.js';
-import {EYES,CHEST,ROCKS,HALO,GOD_EYES,GOD_CHEST} from './titan_model.js';
+import {EYES,CHEST,ROCKS,WINGS,GOD_EYES,GOD_CHEST} from './titan_model.js';
 const BASE='sparkmod:bolt_titan',GIANT='sparkmod:bolt_titan_phase3',DEMON='sparkmod:spark_demon';
 const TYPES=[BASE,GIANT,DEMON],LOCK='sparkmod:bolt_titan_defeated',PENDING='sparkmod:titan_transitions',STUN='sparkmod:titan_stun',RANK='sparkmod:titan_damage';
 const fights=new Map();
@@ -773,7 +773,7 @@ function aura(b){
    }
   }
   if(godNow){ // yellow lightning crawling through its body like veins + warden-style heartbeat
-   for(let i=0;i<1;i++){ // a little lightning playing over the armour
+   for(let i=0;i<(Math.random()<.35?1:0);i++){ // an occasional spark over the carved stone
     const a=at(Math.random()*.8-.4,Math.random()*1.6-.8,.8+Math.random()*3.2);
     const z=at(Math.random()*.8-.4,Math.random()*1.6-.8,.8+Math.random()*3.2);
     F.arc(d,a,z,{color:F.C.gold,size:.16,jag:.35,branches:1,max:40});
@@ -787,9 +787,9 @@ function aura(b){
  }
  const raged=powerScale(b)>1,col=raged?F.C.red:b.typeId===GIANT?F.C.purple:F.C.cyan;
  if((gods.get(b.id)?.stage||0)>=3){ // Spark God: light tracing the halo behind its head
-  const {at,s:sc}=bodyFrame(b),[hf,hr,hu]=HALO.center;
-  for(let i=0;i<16;i++){const a=i*Math.PI/8+tk*.02;F.orb(d,at(hf,hr+Math.cos(a)*HALO.radius,hu+Math.sin(a)*HALO.radius),.55,F.C.gold,.6,.8);}
-  F.motes(d,c,1.6,10,F.C.gold);F.orb(d,c,5,F.C.gold,.6,.3);
+  const {at}=bodyFrame(b); // soft glow along the winged halo
+  for(const w of WINGS)F.orb(d,at(...w),.7,F.C.white,.6,.7);
+  F.motes(d,at(-.5,0,3.9),1.4,8,F.C.gold);
  }
  F.motes(d,c,1.1*(b.typeId===GIANT?1.2:1),raged?10:5,col);
  if(tk%40<10&&Math.random()<.6){
