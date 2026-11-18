@@ -7,7 +7,7 @@ import json, math, sys
 import numpy as np
 from PIL import Image
 
-GEO = 'SparkMod_V221_Resources/models/entity/bolt_titan.geo.json'
+GEO = 'SparkMod_V222_Resources/models/entity/bolt_titan.geo.json'
 
 
 def faces_of(cube):
@@ -58,7 +58,7 @@ def render(tex, yaw_deg, pitch_deg=12, W=360, H=440, scale=6.0, emissive_bones=(
                 ny2, nz3 = ny * cp - nz2 * sp, ny * sp + nz2 * cp
                 if nz3 >= 0:
                     continue
-                f = uvs[name] if isinstance(uvs, dict) else None
+                f = uvs.get(name) if isinstance(uvs, dict) else None
                 if not f:
                     continue
                 (u0, v0), (uw, vh) = f['uv'], f['uv_size']
