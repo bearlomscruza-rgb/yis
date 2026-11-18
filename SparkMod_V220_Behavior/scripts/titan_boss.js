@@ -38,7 +38,7 @@ function bossStage(b){
  return f<=.35?2:1;
 }
 const ANNOUNCE={
- 2:['§6§lPHASE 2','§eThe Titan cracks open... it can now teleport!'],
+ 2:['§6§lPHASE 2','§eThe Titan ignites with yellow light... it can now teleport!'],
  3:['§6§lPHASE 3','§6The Spark Demon has possessed a new host!'],
  4:['§6§lOVERLOAD','§6The Possessed Titan is charging its final beam!']
 };
@@ -55,6 +55,11 @@ function updateStage(b){
  if(!old&&(stage===1||stage===3))return;
  const a=ANNOUNCE[stage];if(!a)return;
  title(b.dimension,b.location,a[0],a[1]);
+ if(stage===2){ // V220: it ignites into its glowing yellow form
+  const d=b.dimension,c=F.core(b);
+  F.sfx(d,'sparkmod.titan.shine',c,5,1.3);F.flash(d,c,10,C.white);F.flash(d,c,6,C.gold);
+  F.shock(d,b.location,12,C.gold,1);F.pulse(d,c,14,C.gold,.6);F.sparks(d,c,60,10,C.gold);F.shake(d,c,40,1,.6);
+ }
  safe(()=>b.dimension.playSound('mob.wither.spawn',b.location,{volume:3,pitch:stage===4?1.3:.8}));
 }
 

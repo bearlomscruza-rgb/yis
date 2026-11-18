@@ -44,7 +44,35 @@
       ],
       "textures": [
         "Array.skins[query.property('sparkmod:godmode')>0 ? 2 : (query.property('sparkmod:cracked') ? 1 : 0)]"
-      ]
+      ],
+      "ignore_lighting": true,
+      "overlay_color": {
+        "r": 1.0,
+        "g": 0.86,
+        "b": 0.18,
+        "a": "query.property('sparkmod:godmode')>0 ? 0.22+0.12*math.sin(query.life_time*480) : 0.10+0.08*math.sin(query.life_time*240)"
+      }
+    },
+    "controller.render.sparkmod.bolt_titan_glow": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "sparkmod_glowing_eyes": "Material.glowing_eyes"
+        }
+      ],
+      "textures": [
+        "Texture.low"
+      ],
+      "ignore_lighting": true,
+      "overlay_color": {
+        "r": 1.0,
+        "g": 0.86,
+        "b": 0.18,
+        "a": "0.10+0.08*math.sin(query.life_time*240)"
+      }
     }
   }
 }

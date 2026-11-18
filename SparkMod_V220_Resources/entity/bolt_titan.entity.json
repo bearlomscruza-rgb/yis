@@ -40,7 +40,12 @@
         ]
       },
       "render_controllers": [
-        "controller.render.sparkmod.bolt_titan"
+        {
+          "controller.render.sparkmod.bolt_titan": "!query.property('sparkmod:cracked')"
+        },
+        {
+          "controller.render.sparkmod.bolt_titan_glow": "query.property('sparkmod:cracked')"
+        }
       ],
       "spawn_egg": {
         "base_color": "#43240F",
