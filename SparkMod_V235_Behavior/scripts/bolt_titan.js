@@ -13,7 +13,7 @@ const fights=new Map();
 const cannonCooldown=new Map(), emergenceUntil=new Map();
 const RAGE_END='sparkmod:rage_end_at',RAGE_HEALTH='sparkmod:rage_before_hp';
 const RAGE_MS=30_000;
-const BASE_MAX_HP={[BASE]:1000,[GIANT]:2000};
+const BASE_MAX_HP={[BASE]:556,[GIANT]:1111};   // V235: 1.8x less health (was 1000 / 2000)
 const powerScale=b=>Date.now()<Number(safe(()=>b.getDynamicProperty(RAGE_END),0)||0)?1.5:1;
 
 const CASTING='sparkmod:casting';

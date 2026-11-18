@@ -65,8 +65,8 @@
         ]
       },
       "minecraft:health": {
-        "value": 1000,
-        "max": 1000
+        "value": 556,
+        "max": 556
       },
       "minecraft:boss": {
         "should_darken_sky": true,
@@ -210,8 +210,8 @@
     "component_groups": {
       "sparkmod:normal_stats": {
         "minecraft:health": {
-          "value": 1000,
-          "max": 1000
+          "value": 556,
+          "max": 556
         },
         "minecraft:scale": {
           "value": 1.5
@@ -239,8 +239,8 @@
       },
       "sparkmod:enraged_stats": {
         "minecraft:health": {
-          "value": 1500,
-          "max": 1500
+          "value": 833,
+          "max": 833
         },
         "minecraft:scale": {
           "value": 2.25
