@@ -680,7 +680,7 @@ system.runInterval(()=>{
    if(removeLocked(b)||!alive(b))return;seen.add(b.id);
    if(type===DEMON)return; // ticked every 2 ticks below
    if((emergenceUntil.get(b.id)||0)>system.currentTick)return;
-   aura(b);
+   wearTick(b);aura(b);
    if(type===GIANT&&godTick(b))return;
    if(type===GIANT&&!gods.has(b.id)&&shutdownTick(b))return;
     endScreamRage(b);phase(b);wardentick(b);phaseTwoTeleport(b);scriptedMelee(b);if(overloadBeam(b))return;const s=state(b);if(system.currentTick<s.next||!combatTarget(b))return;
@@ -712,10 +712,61 @@ system.runInterval(()=>{
   for(const d of safe(()=>world.getDimension(name).getEntities({type:DEMON}),[]))safe(()=>{if(d.isValid)demonTick(d);});
 },2);
 
+// ---------- V221: cracks spread from the chest, rocks crumble away ----------
+function bodyFrame(b){
+ const s=safe(()=>b.getComponent('minecraft:scale')?.value,1)||1;
+ const v=safe(()=>b.getViewDirection(),{x:0,y:0,z:1});
+ const l=Math.hypot(v.x,v.z)||1,fwd={x:v.x/l,y:0,z:v.z/l},right={x:-fwd.z,y:0,z:fwd.x};
+ const at=(f,r,u)=>({x:b.location.x+fwd.x*f*s+right.x*r*s,y:b.location.y+u*s,z:b.location.z+fwd.z*f*s+right.z*r*s});
+ return {s,fwd,right,at};
+}
+function wearTick(b){
+ const h=b.getComponent('minecraft:health');if(!h||h.effectiveMax<=0)return;
+ const f=h.currentValue/h.effectiveMax;
+ const cracked=b.typeId===GIANT||f<=.35;
+ const t=b.typeId===GIANT?f:f/.35;
+ const cracks=!cracked?0:t>.66?1:t>.33?2:3;
+ const rocks=f>.6?0:f>.35?1:f>.2?2:3;
+ const oc=safe(()=>b.getProperty('sparkmod:cracks'),0),or=safe(()=>b.getProperty('sparkmod:rocks'),0);
+ if(cracks!==oc){safe(()=>b.setProperty('sparkmod:cracks',cracks));if(cracks>oc)crackBurst(b,cracks);}
+ if(rocks!==or){safe(()=>b.setProperty('sparkmod:rocks',rocks));if(rocks>or)crumble(b,rocks);}
+}
+function crackBurst(b,stage){
+ const d=b.dimension,{at}=bodyFrame(b),chest=at(.55,.17,2.65);
+ F.flash(d,chest,3+stage*2,F.C.white);F.sparks(d,chest,20+stage*15,6+stage*2,F.C.gold);
+ F.sfx(d,'sparkmod.titan.zap',chest,2,.6);F.sfx(d,'sparkmod.titan.shine',chest,2,1.6+stage*.1);
+ for(let i=0;i<3+stage*2;i++){
+  const a=Math.random()*Math.PI*2,r=1+stage*.6;
+  F.arc(d,chest,{x:chest.x+Math.cos(a)*r,y:chest.y+(Math.random()-.5)*r*1.4,z:chest.z+Math.sin(a)*r},{color:F.C.white,size:.2,branches:0,max:30});
+ }
+ const msg={1:'§e⚡ Its chest is cracking open...',2:'§6⚡ The cracks are spreading across its body!',3:'§6§l⚡ It is cracking apart!'}[stage];
+ for(const p of safe(()=>d.getPlayers({location:b.location,maxDistance:64}),[]))safe(()=>p.onScreenDisplay.setActionBar(msg));
+}
+function crumble(b,level){
+ const d=b.dimension,{at}=bodyFrame(b);
+ // Where each rock group sits on the model (forward, right, up), in blocks.
+ const spots={1:[[-.4,.6,1.6],[-.5,-.7,1.5],[-.4,1.4,1.3],[-.3,-.7,.8]],
+              2:[[-.5,-.7,1.9],[-.1,1.35,2.9],[-.1,-1.4,2.9],[-.4,.6,.8]],
+              3:[[-.6,.8,2.2],[-.6,-.9,2.3],[-.1,1.5,2.0],[-.1,-1.5,2.0],[0,1.3,3.0],[0,-1.3,3.0]]}[level]||[];
+ for(const [f,r,u] of spots){
+  const p=at(f,r,u);
+  F.debris(d,p,.8,18);F.smoke(d,p,4,.6,F.C.dust,.75);F.sparks(d,p,10,4,F.C.gold);F.motes(d,p,.6,8,F.C.gold);
+ }
+ F.sfx(d,'sparkmod.titan.slam',b.location,2,1.5);
+ safe(()=>d.playSound('dig.stone',b.location,{volume:3,pitch:.5}));
+ safe(()=>d.playSound('random.break',b.location,{volume:1.5,pitch:.6}));
+ F.shake(d,b.location,24,.4,.4);
+}
+
 // ---------- V217: ambient electric aura ----------
 function aura(b){
  const d=b.dimension,c=F.core(b),tk=system.currentTick;
  if(isShutdown(b))return;
+ { // V221: glowing eyes and Spark Core
+  const {at}=bodyFrame(b),cr=safe(()=>b.getProperty('sparkmod:cracks'),0);
+  for(const side of [-1,1])F.orb(d,at(.4,side*.22,3.3),.34+cr*.04,F.C.gold,.55,.9);
+  if(cr>0){F.orb(d,at(.6,.17,2.65),.8+cr*.35,F.C.white,.55,.7);if(tk%20<10)F.motes(d,at(.6,.17,2.65),.3,2+cr,F.C.gold);}
+ }
  const raged=powerScale(b)>1,col=raged?F.C.red:b.typeId===GIANT?F.C.purple:F.C.cyan;
  if((gods.get(b.id)?.stage||0)>=1){ // Spark God halo
   const h={x:c.x,y:c.y+2.6,z:c.z};

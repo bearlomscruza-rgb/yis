@@ -7,7 +7,7 @@ import json, math, sys
 import numpy as np
 from PIL import Image
 
-GEO = 'SparkMod_V220_Resources/models/entity/bolt_titan.geo.json'
+GEO = 'SparkMod_V221_Resources/models/entity/bolt_titan.geo.json'
 
 
 def faces_of(cube):
@@ -28,7 +28,7 @@ def faces_of(cube):
 SHADE = {'up': 1.0, 'down': .5, 'north': .82, 'south': .82, 'east': .66, 'west': .66}
 
 
-def render(tex, yaw_deg, pitch_deg=12, W=360, H=440, scale=6.0, emissive_bones=('sparkmod_glowing_eyes',)):
+def render(tex, yaw_deg, pitch_deg=12, W=360, H=440, scale=6.0, emissive_bones=('sparkmod_glowing_eyes',), hide=()):
     geo = json.load(open(GEO))['minecraft:geometry'][0]
     t = np.asarray(tex.convert('RGBA')).astype(float) / 255
     th, tw = t.shape[:2]
@@ -46,6 +46,8 @@ def render(tex, yaw_deg, pitch_deg=12, W=360, H=440, scale=6.0, emissive_bones=(
     img[:] = (0.16, 0.17, 0.2)
     zbuf = np.full((H, W), np.inf)
     for bone in geo['bones']:
+        if any(bone['name'].startswith(h) for h in hide):
+            continue
         emissive = bone['name'] in emissive_bones
         for cube in bone.get('cubes', []):
             uvs = cube['uv']
@@ -100,9 +102,14 @@ if __name__ == '__main__':
     out = args[args.index('-o') + 1]
     texs = [a for a in args if a != '-o' and a != out]
     tiles = []
-    for p in texs:
+    # each argument: texture.png[@hidden_bone_prefix,prefix2][#front]  (#front = front view only)
+    for arg in texs:
+        front = arg.endswith('#front')
+        arg = arg.removesuffix('#front')
+        p, _, hide = arg.partition('@')
         tex = Image.open(p)
-        tiles += [render(tex, 210), render(tex, 20)]
+        h = tuple(x for x in hide.split(',') if x)
+        tiles += ([] if front else [render(tex, 210, hide=h)]) + [render(tex, 20, hide=h)]
     W, H = tiles[0].size
     sheet = Image.new('RGB', (W * len(tiles), H))
     for i, t in enumerate(tiles):
