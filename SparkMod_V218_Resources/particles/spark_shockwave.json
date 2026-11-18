@@ -2,7 +2,7 @@
   "format_version": "1.10.0",
   "particle_effect": {
     "description": {
-      "identifier": "sparkmod:titan_overload_beam",
+      "identifier": "sparkmod:spark_shockwave",
       "basic_render_parameters": {
         "material": "particles_add",
         "texture": "textures/particle/spark_titan_plus"
@@ -21,8 +21,8 @@
       },
       "minecraft:particle_appearance_billboard": {
         "size": [
-          1.15,
-          1.15
+          0.276,
+          0.276
         ],
         "facing_camera_mode": "lookat_xyz",
         "uv": {
@@ -40,10 +40,10 @@
       },
       "minecraft:particle_appearance_tinting": {
         "color": [
-          0.28,
-          0.98,
-          1.0,
-          1.0
+          1,
+          0.88,
+          0.2,
+          0.92
         ]
       }
     }

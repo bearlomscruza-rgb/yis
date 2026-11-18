@@ -2,17 +2,17 @@ import {MolangVariableMap,system} from '@minecraft/server';
 
 // V217 visual + audio effects library for the Bolt Titan.
 // Particles live in the resource pack (particles/fx_*.json), sounds in sounds/sparkmod/*.ogg.
-export const C={
- cyan:{red:.35,green:.9,blue:1},
- blue:{red:.25,green:.55,blue:1},
- gold:{red:1,green:.78,blue:.2},
- orange:{red:1,green:.45,blue:.1},
- white:{red:1,green:1,blue:1},
- red:{red:1,green:.12,blue:.08},
- purple:{red:.7,green:.25,blue:1},
- pink:{red:1,green:.35,blue:.9},
- dust:{red:.45,green:.38,blue:.3},
- smoke:{red:.12,green:.12,blue:.14}
+export const C={ // V218: everything is yellow
+ cyan:{red:1,green:.95,blue:.3},
+ blue:{red:1,green:.85,blue:.1},
+ gold:{red:1,green:.78,blue:.1},
+ orange:{red:1,green:.76,blue:.05},
+ white:{red:1,green:1,blue:.72},
+ red:{red:1,green:.72,blue:0},
+ purple:{red:1,green:.88,blue:.12},
+ pink:{red:1,green:1,blue:.45},
+ dust:{red:.62,green:.54,blue:.18},
+ smoke:{red:.3,green:.26,blue:.05}
 };
 const safe=(fn,f)=>{try{return fn();}catch{return f;}};
 

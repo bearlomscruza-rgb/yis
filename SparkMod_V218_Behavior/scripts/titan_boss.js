@@ -21,9 +21,9 @@ const near=(dim,at,r)=>safe(()=>dim.getPlayers({location:at,maxDistance:r}),[]);
 
 const BAR={
  1:'§6§lBOLT TITAN',
- 2:'§6§lBOLT TITAN §r§c§l[CRACKED]',
- 3:'§4§lPOSSESSED BOLT TITAN',
- 4:'§4§lPOSSESSED BOLT TITAN §r§b§l[OVERLOAD]'
+ 2:'§6§lBOLT TITAN §r§6§l[CRACKED]',
+ 3:'§6§lPOSSESSED BOLT TITAN',
+ 4:'§6§lPOSSESSED BOLT TITAN §r§6§l[OVERLOAD]'
 };
 function title(dim,at,main,sub,r=100){
  for(const p of near(dim,at,r))safe(()=>p.onScreenDisplay.setTitle(main,{subtitle:sub,fadeInDuration:10,stayDuration:50,fadeOutDuration:20}));
@@ -38,15 +38,15 @@ function bossStage(b){
  return f<=.35?2:1;
 }
 const ANNOUNCE={
- 2:['§c§lPHASE 2','§eThe Titan cracks open... it can now teleport!'],
- 3:['§4§lPHASE 3','§cThe Spark Demon has possessed a new host!'],
- 4:['§b§lOVERLOAD','§bThe Possessed Titan is charging its final beam!']
+ 2:['§6§lPHASE 2','§eThe Titan cracks open... it can now teleport!'],
+ 3:['§6§lPHASE 3','§6The Spark Demon has possessed a new host!'],
+ 4:['§6§lOVERLOAD','§6The Possessed Titan is charging its final beam!']
 };
 function updateStage(b){
  const stage=bossStage(b);
  const old=Number(safe(()=>b.getDynamicProperty(STAGE),0)||0);
  const down=b.typeId===GIANT&&safe(()=>b.getProperty('sparkmod:shutdown'),false)===true;
- const label=down?'§4§lPOSSESSED BOLT TITAN §r§7§l[SHUT DOWN]':BAR[stage];
+ const label=down?'§6§lPOSSESSED BOLT TITAN §r§e§l[SHUT DOWN]':BAR[stage];
  if(b.nameTag!==label)safe(()=>{b.nameTag=label;});
  if(stage===old)return;
  safe(()=>b.setDynamicProperty(STAGE,stage));
@@ -78,8 +78,8 @@ world.afterEvents.entitySpawn.subscribe(({entity})=>{
   updateStage(entity);
   storm();
   soundAll(dim,'mob.wither.spawn',{volume:.7,pitch:giant?.6:.8});
-  title(dim,at,giant?'§4§lPOSSESSED BOLT TITAN':'§6§lBOLT TITAN',
-        giant?'§cIt has returned... stronger.':'§eStorm Guardian of the Colosseum',120);
+  title(dim,at,giant?'§6§lPOSSESSED BOLT TITAN':'§6§lBOLT TITAN',
+        giant?'§6It has returned... stronger.':'§eStorm Guardian of the Colosseum',120);
   // Emergence lasts 102 ticks in bolt_titan.js; break free with a blast just after.
   system.runTimeout(()=>safe(()=>{
    if(!alive(entity))return;
@@ -107,7 +107,7 @@ system.runInterval(()=>{
    if(!alive(b))continue;
    anyBoss=true;
    if(type===DEMON){
-    if(b.nameTag!=='§d§lSPARK DEMON §r§7- seeking a host')safe(()=>{b.nameTag='§d§lSPARK DEMON §r§7- seeking a host';});
+    if(b.nameTag!=='§6§lSPARK DEMON §r§e- seeking a host')safe(()=>{b.nameTag='§6§lSPARK DEMON §r§e- seeking a host';});
     continue;
    }
    updateStage(b);
@@ -137,7 +137,7 @@ world.afterEvents.entityDie.subscribe(({deadEntity})=>{
  if(type===BASE){
   // Not the end: the body blows apart and the Spark Demon escapes.
   safe(()=>dim.playSound('mob.wither.death',at,{volume:2,pitch:1.4}));
-  title(dim,at,'§d§lTHE TITAN FALLS...','§7...but something escapes its body!');
+  title(dim,at,'§6§lTHE TITAN FALLS...','§e...but something escapes its body!');
   fuse(dim,at,30,6,C.gold);
   system.runTimeout(()=>explode(dim,at,4,C.gold),30);
   return;

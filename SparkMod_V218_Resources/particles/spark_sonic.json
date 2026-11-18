@@ -2,7 +2,7 @@
   "format_version": "1.10.0",
   "particle_effect": {
     "description": {
-      "identifier": "sparkmod:spark_shockwave",
+      "identifier": "sparkmod:spark_sonic",
       "basic_render_parameters": {
         "material": "particles_add",
         "texture": "textures/particle/spark_titan_plus"
@@ -17,12 +17,12 @@
       },
       "minecraft:emitter_shape_point": {},
       "minecraft:particle_lifetime_expression": {
-        "max_lifetime": 0.42
+        "max_lifetime": 0.27
       },
       "minecraft:particle_appearance_billboard": {
         "size": [
-          0.276,
-          0.276
+          0.207,
+          0.207
         ],
         "facing_camera_mode": "lookat_xyz",
         "uv": {
@@ -40,10 +40,10 @@
       },
       "minecraft:particle_appearance_tinting": {
         "color": [
-          0.25,
-          0.9,
-          1.0,
-          0.92
+          1,
+          0.97,
+          0.4,
+          1
         ]
       }
     }

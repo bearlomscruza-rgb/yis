@@ -609,7 +609,7 @@ function demonTick(b){
  if(length>2.2){
   const k=Math.min(1,.55/length); // ~5.5 blocks per second
   safe(()=>b.teleport({x:at.x+delta.x*k,y:at.y+delta.y*k,z:at.z+delta.z*k},{dimension:dim,facingLocation:host.location}));
-  if(system.currentTick%20<2&&host.typeId==='minecraft:player')safe(()=>host.onScreenDisplay.setActionBar('§5§lThe Spark Demon is hunting YOU...'));
+  if(system.currentTick%20<2&&host.typeId==='minecraft:player')safe(()=>host.onScreenDisplay.setActionBar('§6§lThe Spark Demon is hunting YOU...'));
   return;
  }
  beginPossession(b,host);
@@ -622,11 +622,11 @@ function beginPossession(b,host){
  const name=isPlayer?host.name:(host.typeId.split(':')[1]||'creature').replace(/_/g,' ');
  if(isPlayer){
   safe(()=>stun(host,POSSESS_TICKS/20+.5));
-  safe(()=>host.onScreenDisplay.setTitle('§5§lPOSSESSED',{subtitle:'§dThe Spark Demon is taking your body!',fadeInDuration:5,stayDuration:60,fadeOutDuration:15}));
+  safe(()=>host.onScreenDisplay.setTitle('§6§lPOSSESSED',{subtitle:'§6The Spark Demon is taking your body!',fadeInDuration:5,stayDuration:60,fadeOutDuration:15}));
  }else safe(()=>host.addEffect('slowness',POSSESS_TICKS+10,{amplifier:255,showParticles:false}));
  safe(()=>host.addEffect('levitation',POSSESS_TICKS,{amplifier:0,showParticles:false}));
  for(const p of safe(()=>dim.getPlayers({location:host.location,maxDistance:100}),[]))
-  if(p.id!==host.id)safe(()=>p.onScreenDisplay.setTitle('§5§lPOSSESSION',{subtitle:'§dThe Spark Demon is possessing §f'+name+'§d!',fadeInDuration:5,stayDuration:50,fadeOutDuration:15}));
+  if(p.id!==host.id)safe(()=>p.onScreenDisplay.setTitle('§6§lPOSSESSION',{subtitle:'§6The Spark Demon is possessing §e'+name+'§6!',fadeInDuration:5,stayDuration:50,fadeOutDuration:15}));
  F.sfx(dim,'sparkmod.titan.possess',host.location,4,1);
  safe(()=>dim.playSound('mob.wither.ambient',host.location,{volume:2,pitch:.5}));
  F.cage(dim,host,POSSESS_TICKS,F.C.purple,1.2);
@@ -659,7 +659,7 @@ function possessionTick(b,host,st){
   safe(()=>host.addEffect('nausea',140,{amplifier:0,showParticles:false}));
   safe(()=>host.addEffect('darkness',60,{amplifier:0,showParticles:false}));
   safe(()=>host.addEffect('slow_falling',80,{amplifier:0,showParticles:false}));
-  safe(()=>host.sendMessage('§5The Possessed Titan tore its way out of your body!'));
+  safe(()=>host.sendMessage('§6The Possessed Titan tore its way out of your body!'));
  }else safe(()=>host.remove());
  safe(()=>b.remove());phase(giant);
 }
@@ -757,7 +757,7 @@ function beginShutdown(b,s){
  safe(()=>d.playSound('mob.irongolem.death',c,{volume:2,pitch:.5}));
  F.sparks(d,c,60,8,F.C.gold);F.smoke(d,c,12,1.5);F.flash(d,c,5,F.C.cyan);F.shake(d,c,30,.8,.6);
  for(const p of nearbyPlayers(b,REBOOT_RADIUS))
-  safe(()=>p.onScreenDisplay.setTitle('§b§lSHUT DOWN',{subtitle:'§7Its core is exposed — §ehit it now!',fadeInDuration:5,stayDuration:40,fadeOutDuration:10}));
+  safe(()=>p.onScreenDisplay.setTitle('§6§lSHUT DOWN',{subtitle:'§eIts core is exposed — §ehit it now!',fadeInDuration:5,stayDuration:40,fadeOutDuration:10}));
 }
 function shutdownEffects(b,left){
  const d=b.dimension,c=F.core(b);
@@ -767,7 +767,7 @@ function shutdownEffects(b,left){
  const secs=Math.ceil(left/20);
  if(left%20<10){
   F.sfx(d,secs<=3?'sparkmod.titan.beep':'sparkmod.titan.hum',c,secs<=3?2:1.2,secs<=3?1+(3-secs)*.15:1);
-  for(const p of nearbyPlayers(b,REBOOT_RADIUS))safe(()=>p.onScreenDisplay.setActionBar((secs<=3?'§c§l':'§b')+'⚡ REBOOTING IN '+secs+'...'));
+  for(const p of nearbyPlayers(b,REBOOT_RADIUS))safe(()=>p.onScreenDisplay.setActionBar((secs<=3?'§6§l':'§6')+'⚡ REBOOTING IN '+secs+'...'));
  }
  if(left<=40&&left>30)F.sfx(d,'sparkmod.titan.reboot',c,6,1);
  if(left<=50){
@@ -803,7 +803,7 @@ function reboot(b,s){
    F.sfx(d,'sparkmod.titan.zap',to,1.5,.8);
    if(v.typeId==='minecraft:player'){
     stun(v,5);
-    safe(()=>v.onScreenDisplay.setTitle('§d§lSTUNNED',{subtitle:'§7The Titan rebooted!',fadeInDuration:2,stayDuration:80,fadeOutDuration:10}));
+    safe(()=>v.onScreenDisplay.setTitle('§6§lSTUNNED',{subtitle:'§eThe Titan rebooted!',fadeInDuration:2,stayDuration:80,fadeOutDuration:10}));
    }else safe(()=>v.addEffect('slowness',100,{amplifier:255,showParticles:false}));
    safe(()=>v.addEffect('levitation',100,{amplifier:0,showParticles:true}));
    F.cage(d,v,100,F.C.purple);
@@ -877,7 +877,7 @@ system.afterEvents.scriptEventReceive.subscribe(ev=>{
    messages.push('Bolt Titan '+b.typeId+': target='+(t?.typeId||'NONE')+' distance='+distance+' range='+meleeReach(b).toFixed(1)+' melee='+melee.toFixed(1)+'s ability='+ability.toFixed(1)+'s');
   }
   if(!messages.length)messages.push('No Bolt Titan in this dimension.');
-  for(const line of messages){if(sender?.typeId==='minecraft:player')sender.sendMessage('§6[Spark AI] §f'+line);else world.sendMessage('§6[Spark AI] §f'+line);}
+  for(const line of messages){if(sender?.typeId==='minecraft:player')sender.sendMessage('§6[Spark AI] §e'+line);else world.sendMessage('§6[Spark AI] §e'+line);}
  }));
 });
 
