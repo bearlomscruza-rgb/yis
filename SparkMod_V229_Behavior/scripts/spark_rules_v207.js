@@ -1,4 +1,5 @@
 import {world,system,InputPermissionCategory,EquipmentSlot} from '@minecraft/server';
+import {getConfig} from './spark_config.js';
 
 // V209: keep Spark enchantment caps; replace locator-map penalties with map cleanup.
 const UNUSED_LOCK_KEY='sparkmod:locator_map_lock_until';
@@ -54,7 +55,8 @@ function scanSparkEnchants(player){
 // current stable ItemStack API does not expose the map's auxiliary data value.
 // We remove BOTH variants rather than mistakenly keeping locator maps.
 const MAPS=new Set(['minecraft:empty_map','minecraft:filled_map','minecraft:map']);
-const isMap=stack=>!!stack && MAPS.has(stack.typeId);
+// V229: can be switched off with /deck3.
+const isMap=stack=>!!stack && MAPS.has(stack.typeId) && getConfig().clearLocatorMaps;
 function clearContainer(container){
  if(!container)return;
  for(let slot=0;slot<container.size;slot++){
@@ -102,7 +104,8 @@ world.afterEvents.playerSpawn.subscribe(({player})=>system.runTimeout(()=>safe((
 if(world.afterEvents.playerInventoryItemChange?.subscribe)world.afterEvents.playerInventoryItemChange.subscribe(({player})=>system.runTimeout(()=>safe(()=>cleanPlayer(player)),1));
 system.runInterval(()=>{
  for(const p of world.getAllPlayers())safe(()=>cleanPlayer(p));
-},20);
+},4);
 system.runInterval(()=>{
+ if(!getConfig().clearLocatorMaps)return;
  for(const p of world.getAllPlayers())safe(()=>cleanAround(p));
-},100);
+},20);

@@ -15,6 +15,8 @@ import './temple.js';
 import './pvp_arena.js';
 import { world, system, ItemStack, EquipmentSlot, EnchantmentTypes } from '@minecraft/server';
 import { ActionFormData, ModalFormData } from '@minecraft/server-ui';
+import { issueGodArmor, rechargeSparkChest, sparkChestStatus } from './spark_systems_v229.js';
+import * as F from './titan_fx_v217.js';
 
 // SparkMod V25: gameplay polish pass. Requires custom item/entity/block JSON.
 // V59: Spark Dimension removed. Weapons, armor, token and gacha remain.
@@ -184,6 +186,15 @@ function playGachaCloud(p, rolls) {
   gachaActive.add(p.id);
   const moonAtPurchase=sparkMoonStatus().active;
   const prizes=Array.from({length:rolls},()=>({r:Math.random(),moon:moonAtPurchase}));
+  // V229 pity: every 15 Spark Tokens without unique Spark gear guarantees a unique piece.
+  let pity=Number(prop(p,'sparkPity',0));
+  for(const prize of prizes){
+   const unique=prize.moon?!!moonUniqueItem(prize.r):(prize.r>=.005&&prize.r<.025);
+   if(unique){pity=0;continue;}
+   pity++;
+   if(pity>=PITY_LIMIT&&unclaimedUniqueCount()>0){prize.r=.015;prize.moon=false;pity=0;tell(p,`§6⚡ PITY! ${PITY_LIMIT} Spark Tokens without Spark gear - this roll is guaranteed unique Spark equipment!`);}
+  }
+  setProp(p,'sparkPity',pity);
   setProp(p,'pendingSparkPrizes',JSON.stringify(prizes));
   const cards=['§7COMMON — Cloud Loot','§eUNCOMMON — Random Ore','§dRARE — God Apple',
     '§6LEGENDARY — Spark Equipment','§6LEGENDARY — Spark Equipment','§5MYTHIC — God Villager'];
@@ -225,7 +236,7 @@ async function openSparkRollMenu(p, attempt=0){
   if(!valid(p))return;
   const form=new ActionFormData()
     .title('§e⚡ ROLL A SPARK')
-    .body('§6☁ LIGHTNING CLOUD ☁\n§eSpend 1 Spark Token to roll for a reward!'+(sparkMoonStatus().active?'\n§dSPARK MOON: 15% chance for each unique Spark gear piece!':''))
+    .body('§6☁ LIGHTNING CLOUD ☁\n§eSpend 1 Spark Token to roll for a reward!\n§7Pity: §f'+Number(prop(p,'sparkPity',0))+'/'+PITY_LIMIT+' §7(guaranteed unique Spark gear at '+PITY_LIMIT+')'+(sparkMoonStatus().active?'\n§dSPARK MOON: 15% chance for each unique Spark gear piece!':''))
     .button('§e⚡ ROLL A SPARK — 1 Token','textures/ui/spark_storm_cloud')
     .button('§c✕ EXIT');
   try{
@@ -248,6 +259,9 @@ function showGacha(p){system.run(()=>openSparkRollMenu(p));}
 // Claims are stored on the world and survive restarts. Once the pool is empty,
 // duplicate slots redirect to unclaimed armor, then a God Apple if armor is exhausted.
 const UNIQUE_ROLLS=[I.sword,I.mace,I.helmet,I.chest,I.legs,I.boots];
+const PITY_LIMIT=15;
+function unclaimedUniqueCount(){const c=String(prop(world,'uniqueSparkRolls','')).split('|');return UNIQUE_ROLLS.filter(id=>!c.includes(id)).length;}
+const GOD_ARMOR_IDS=[I.helmet,I.chest,I.legs,I.boots];
 function claimUniqueRoll(){
   const claimed=String(prop(world,'uniqueSparkRolls','')).split('|').filter(Boolean);
   const remaining=UNIQUE_ROLLS.filter(id=>!claimed.includes(id));
@@ -282,6 +296,7 @@ function giveUniqueRoll(p, requestedItem=null){
     const upgrade=claimDuplicateArmorReward();
     if(upgrade){
       give(p,upgrade);
+      if(GOD_ARMOR_IDS.includes(upgrade))issueGodArmor(p,upgrade);
       tell(p,'§6DUPLICATE ROLL UPGRADE! Guaranteed unclaimed Spark '+upgrade.replace('sparkmod:god_','').replaceAll('_',' ')+' §7(World exclusive)');
       return;
     }
@@ -290,6 +305,7 @@ function giveUniqueRoll(p, requestedItem=null){
     return;
   }
   give(p,id);
+  if(GOD_ARMOR_IDS.includes(id))issueGodArmor(p,id);
   tell(p,'§6UNIQUE SPARK REWARD! '+id.replace('sparkmod:','').replace('minecraft:mace','Spark Mace').replaceAll('_',' ')+' §7(World exclusive)');
 }
 function roll(p, selectedRoll){
@@ -692,17 +708,20 @@ function altarUI(p){system.run(async()=>{
   return;
  }
 
- const form=new ActionFormData().title('Temple of Sparks — Altar')
+ const chestState=sparkChestStatus(p);
+ const form=new ActionFormData().title('Spark Shrine')
  .body(`Awaken ONE piece per player per Spark Moon for 5 Spark Tokens.\nSpark Moon: ${sparkMoonStatus().active ? '§aACTIVE' : '§cINACTIVE'}\n${sparkMoonStatus().active ? 'Ends in' : 'Next in'}: ${formatMoonTime(sparkMoonStatus().remainingMs)}`)
  .button('Craft Spark Mace')
  .button('Awaken Helmet — 5 Tokens').button('Awaken Chestplate — 5 Tokens')
- .button('Awaken Leggings — 5 Tokens').button('Awaken Boots — 5 Tokens').button('Awaken Held Spark Sword — 5 Tokens').button('Awaken Held Spark Mace — 5 Tokens').button('§6⚒ Spark Forge — Upgrade with Sparkite').button('Close');
+ .button('Awaken Leggings — 5 Tokens').button('Awaken Boots — 5 Tokens').button('Awaken Held Spark Sword — 5 Tokens').button('Awaken Held Spark Mace — 5 Tokens').button('§6⚒ Spark Forge — Upgrade with Sparkite')
+ .button(chestState==='charged'?'§7Spark Chestplate: charged':'§6⚡ Recharge Spark Chestplate — 3 Tokens').button('Close');
  const r=await showForm(p,form);if(!r||r.canceled)return;
  if(r.selection===0)craft(p,'mace');
  else if(r.selection>=1&&r.selection<=4)awakenPiece(p,r.selection-1);
  else if(r.selection===5)awakenSword(p);
  else if(r.selection===6)awakenMace(p);
  else if(r.selection===7)forgeUI(p);
+ else if(r.selection===8)rechargeSparkChest(p,()=>take(p,I.tear,3));
 });}
 function blockAt(dim,pos){return safe(()=>dim.getBlock({x:Math.floor(pos.x),y:Math.floor(pos.y),z:Math.floor(pos.z)}));}
 function place(dim,pos,id){safe(()=>blockAt(dim,pos)?.setType(id));}
@@ -887,6 +906,8 @@ function thorLightningStorm(p){
       const target=targets[i%targets.length];
       const spot={...target.location};
       lightning(dim,spot);
+      F.bolt(dim,{x:spot.x,y:spot.y+18,z:spot.z},{x:spot.x,y:spot.y+1,z:spot.z},{color:F.C.white,size:.5,branches:3},6);
+      F.shock(dim,spot,3,F.C.gold,.5);F.sfx(dim,'sparkmod.titan.zap',spot,2,.8);
       safe(()=>dim.spawnParticle('minecraft:basic_smoke_particle',spot));
     },i*5);
   }
@@ -1065,7 +1086,16 @@ function sparkParticles(dimension, pos, amount=12) {
     }));
   }
 }
+function maceFx(dim,at,big=false){ // V229: Spark Mace hit effects
+  const c={x:at.x,y:at.y+1,z:at.z};
+  F.flash(dim,c,big?6:3.5,F.C.gold);F.sparks(dim,c,big?60:28,big?10:7,F.C.gold);
+  F.shock(dim,at,big?7:4,F.C.gold,.6);F.debris(dim,at,big?2:1.2,big?36:16);
+  F.sfx(dim,'sparkmod.titan.impact',c,big?3:1.8,big?.85:1.2);F.sfx(dim,'sparkmod.titan.zap',c,1.6,1);
+  F.shake(dim,c,big?18:10,big?1.1:.5,.4);
+}
 function strikeCritTarget(attacker, victim) {
+  F.bolt(victim.dimension,{x:victim.location.x+(Math.random()-.5)*2,y:victim.location.y+14,z:victim.location.z+(Math.random()-.5)*2},{x:victim.location.x,y:victim.location.y+1,z:victim.location.z},{color:F.C.white,size:.45,branches:2},6);
+  maceFx(victim.dimension,victim.location,false);
   const nearTeam = safe(() => attacker.dimension.getPlayers({location:victim.location,maxDistance:4})
       .some(p => p.id!==victim.id && p.id!==attacker.id && areTeammates(attacker,p)), true);
   if (!nearTeam) {
@@ -1114,6 +1144,7 @@ function maceImpact(attacker, victim, drop) {
       if(r>0.05) safe(()=>e.applyKnockback({x:1.8*dX/r,z:1.8*dZ/r},0.45));
     }
     sparkParticles(victim.dimension,victim.location,22);
+    F.shock(victim.dimension,victim.location,6,F.C.gold,.6);F.sfx(victim.dimension,'sparkmod.titan.slam',victim.location,2,1.2);
   }
   if (thor && drop>=10 && Number(prop(attacker,'judgmentUsedUntil',0)) !== Number(prop(attacker,'thorUntil',0))) {
     setProp(attacker,'judgmentUsedUntil',Number(prop(attacker,'thorUntil',0)));
@@ -1124,6 +1155,8 @@ function maceImpact(attacker, victim, drop) {
       safe(()=>e.addEffect('weakness',100,{amplifier:0}));
     }
     sparkParticles(victim.dimension,victim.location,40);
+    maceFx(victim.dimension,victim.location,true);F.shock(victim.dimension,victim.location,10,F.C.white,1);
+    F.sfx(victim.dimension,'sparkmod.titan.explode',victim.location,4,1.3);
     tell(attacker,'§6⚡ Lightning Judgment! +5 hearts bonus damage.');
   }
 }
@@ -1189,17 +1222,19 @@ world.afterEvents.entityHurt?.subscribe(ev => {
       const dimension = victim.dimension;
       const impact = {...victim.location};
       safe(() => attacker.addEffect('fire_resistance', 70, {amplifier:0,showParticles:false}));
+      maceFx(dimension,impact,true);
+      F.sfx(dimension,'sparkmod.titan.slam',impact,3,1.1);
+      for(let k=0;k<6;k++){const a=k*Math.PI/3;F.arc(dimension,{x:impact.x,y:impact.y+.2,z:impact.z},{x:impact.x+Math.cos(a)*4,y:impact.y+.2,z:impact.z+Math.sin(a)*4},{color:F.C.gold,size:.25,jag:.5,branches:0,max:40});}
       // Spread the three strikes over 0.3 seconds, centered around the enemy.
       for (let i=0; i<3; i++) {
         system.runTimeout(() => {
           const center = safe(() => valid(victim) ? victim.location : impact, impact);
           const angle = (Math.PI * 2 * i / 3);
           const radius = i === 0 ? 0 : 0.65;
-          lightning(dimension, {
-            x:center.x + Math.cos(angle)*radius,
-            y:center.y,
-            z:center.z + Math.sin(angle)*radius
-          });
+          const strike={x:center.x + Math.cos(angle)*radius,y:center.y,z:center.z + Math.sin(angle)*radius};
+          lightning(dimension, strike);
+          F.bolt(dimension,{x:strike.x,y:strike.y+16,z:strike.z},{x:strike.x,y:strike.y+.5,z:strike.z},{color:F.C.white,size:.5,branches:3},6);
+          F.flash(dimension,{x:strike.x,y:strike.y+1,z:strike.z},4,F.C.gold);
         }, i*3+1);
       }
     }
@@ -1226,6 +1261,13 @@ world.afterEvents.itemUse.subscribe(ev=>{const p=ev.source,id=ev.itemStack?.type
    setProp(p,'thorUntil',Date.now()+15000);
    // No idle or activation particles; lightning visuals occur on critical hits.
    setProp(p,'thorDefenseUntil',Date.now()+THOR_DEFENSE_MS);
+   { // V229: Thor Mode activation burst
+     const d=p.dimension,c={x:p.location.x,y:p.location.y+1,z:p.location.z};
+     F.sfx(d,'sparkmod.titan.reboot',c,3,1.2);F.sfx(d,'sparkmod.titan.roar',c,2,1.4);
+     F.flash(d,c,8,F.C.gold);F.converge(d,c,4,40,F.C.gold);
+     for(let k=0;k<4;k++)system.runTimeout(()=>F.pulse(d,c,6+k*4,F.C.gold,.6),k*3);
+     F.shock(d,p.location,10,F.C.white,.9);F.shake(d,c,24,1,.8);
+   }
    thorLightningStorm(p);
    tell(p,'§6⚡ Thor Storm: 10 lightning strikes targeting enemies within 10 blocks!');
    tell(p,'§e⚡ Thor Mode: 3-minute defensive blink, 15-second damage boost.');
@@ -1260,25 +1302,13 @@ system.runInterval(()=>{for(const p of world.getAllPlayers()){
  const chest=equipment(p,EquipmentSlot.Chest)?.typeId;
  const legs=equipment(p,EquipmentSlot.Legs)?.typeId;
  const boots=equipment(p,EquipmentSlot.Feet)?.typeId;
- if([I.helmet,I.helmetV3].includes(helmet)){
-  safe(()=>p.addEffect('fire_resistance',55,{amplifier:0,showParticles:false}));
-  safe(()=>p.addEffect('haste',55,{amplifier:0,showParticles:false}));
- }
- if([I.chest,I.chestV3].includes(chest)){
-  safe(()=>p.addEffect('health_boost',55,{amplifier:9,showParticles:false}));
- }
- if([I.legs,I.legsV3].includes(legs)){
-  safe(()=>p.addEffect('weaving',55,{amplifier:0,showParticles:false}));
- }
- if([I.boots,I.bootsV3].includes(boots)){
-  // Regular boots: Speed I; awakened boots: Speed II; awakened + V3: Speed III.
-   const bootItem=equipment(p,EquipmentSlot.Feet);
-   const awakened=bootItem?.getLore?.().some(line=>/awaken/i.test(line)) || 
-     safe(()=>bootItem?.getDynamicProperty('sparkmod:awakened')===true,false);
-   const tier3=boots===I.bootsV3;
-   const amp=awakened?(tier3?2:1):0;
-   safe(()=>p.addEffect('speed',55,{amplifier:amp,showParticles:false}));
- }
+ // V229 armour effects (awakened = awakened at the Spark Shrine; V3 forging no longer changes them).
+ const isAwake=slot=>{const it=equipment(p,slot);return safe(()=>it?.getDynamicProperty('sparkmod:awakened')===true,false)||!!it?.getLore?.().some(l=>/awaken/i.test(l));};
+ if([I.helmet,I.helmetV3].includes(helmet))safe(()=>p.addEffect('weaving',55,{amplifier:0,showParticles:false}));          // Weaving I
+ // Health Boost adds hearts in steps of 2: level 8 = +16 hearts (closest to 15), level 10 = +20 hearts.
+ if([I.chest,I.chestV3].includes(chest))safe(()=>p.addEffect('health_boost',55,{amplifier:isAwake(EquipmentSlot.Chest)?9:7,showParticles:false}));
+ if([I.legs,I.legsV3].includes(legs))safe(()=>p.addEffect('resistance',55,{amplifier:isAwake(EquipmentSlot.Legs)?1:0,showParticles:false}));  // Resistance I / II
+ if([I.boots,I.bootsV3].includes(boots))safe(()=>p.addEffect('speed',55,{amplifier:isAwake(EquipmentSlot.Feet)?2:0,showParticles:false}));      // Speed I / III
  // Keep the existing Spark Sword full-set Strength I synergy.
  if(hasFullSet(p)&&isSparkSword(held(p)))safe(()=>p.addEffect('strength',55,{amplifier:0,showParticles:false}));
 }},20);

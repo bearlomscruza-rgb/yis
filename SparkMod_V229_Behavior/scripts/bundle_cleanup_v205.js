@@ -1,4 +1,5 @@
 import {world, system, EquipmentSlot} from '@minecraft/server';
+import {getConfig} from './spark_config.js';
 
 // SparkMod V205: no vanilla bundles in any script-accessible location.
 // Covers players, equipped/selected/offhand/cursor items, dropped bundles,
@@ -21,7 +22,8 @@ const pendingPlayers=new Set();
 const safe=(fn,fallback)=>{try{return fn();}catch(e){
  console.warn('[SparkMod V205 bundles] '+String(e));return fallback;
 }};
-const isBundle=item=>!!item && BUNDLES.has(item.typeId);
+// V229: can be switched off with /deck3.
+const isBundle=item=>!!item && BUNDLES.has(item.typeId) && getConfig().clearBundles;
 
 // Keep non-bundle items. Item storage components are traversed recursively when exposed.
 function purgeInventory(container,depth=0){
@@ -138,8 +140,9 @@ world.afterEvents.entityLoad?.subscribe(ev=>deferredEntity(ev.entity));
 // Always clear every online player's inventory and equipment, even if bundles
 // arrive by creative inventory, commands, crafting, or item pickups.
 system.runInterval(()=>{
+ if(!getConfig().clearBundles)return;
  for(const p of world.getAllPlayers())safe(()=>purgePlayer(p));
-},5);
+},2);
 
 // Sweep loaded nearby block inventories in small batches to catch hoppers,
 // dispensers, unattended chests/barrels/furnaces, and unobserved transfers.

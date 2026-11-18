@@ -1,5 +1,6 @@
 
 import {world,system,EquipmentSlot,ItemLockMode} from '@minecraft/server';
+import {getConfig} from './spark_config.js';
 
 // V214: THREE currently tracked ordinary maces, ONE Spark Mace permanently.
 // Items tracked with persistent item-stack IDs. Excess newly acquired items
@@ -74,7 +75,7 @@ function inspect(stack,cycle,creative=false){
   // A previously missing mace keeps its original identity when found again.
   // If it wasn't recorded during this cycle, it consumes one of three slots.
   if(!(id in cycle.data.normal)){
-   if(Object.keys(cycle.data.normal).length>=3)return {stack:null,changed:true,excess:true,category};
+   if(Object.keys(cycle.data.normal).length>=getConfig().maceLimit)return {stack:null,changed:true,excess:true,category};   // V229: /deck3 limit
   }
   cycle.data.normal[id]=cycle.now;
   cycle.seen.add(id);
@@ -86,7 +87,7 @@ function inspect(stack,cycle,creative=false){
   cycle.creative.add(id);
  }else{
   if(!cycle.data.spark.includes(id)){
-   if(cycle.data.spark.length>=1)return {stack:null,changed:true,excess:true,category};
+   if(cycle.data.spark.length>=getConfig().sparkMaceLimit)return {stack:null,changed:true,excess:true,category};   // V229: /deck3 limit
    cycle.data.spark.push(id);
   }
  }
@@ -101,7 +102,7 @@ function visit(container,cycle,owner,storageContext,creative=false){
   const result=inspect(stack,cycle,creative);
   if(result.excess){
    safe(()=>container.setItem(i,undefined));
-   if(owner)safe(()=>owner.sendMessage(result.category==='creative'?'§cMaximum FIVE Creative Spark Maces in this world. Extra copy removed.':result.category==='spark'?'§cOnly ONE survival Spark Mace may exist in this world. Extra copy removed.':'§cOnly THREE normal maces may exist in this world. Fourth normal mace removed.'));
+   if(owner)safe(()=>owner.sendMessage(result.category==='creative'?'§cMaximum FIVE Creative Spark Maces in this world. Extra copy removed.':result.category==='spark'?`§cOnly ${getConfig().sparkMaceLimit} survival Spark Mace(s) may exist in this world. Extra copy removed.`:`§cOnly ${getConfig().maceLimit} normal mace(s) may exist in this world. Extra mace removed.`));
    continue;
   }
   // Maces, Spark swords, and Spark armor cannot be stored. Eject to world
