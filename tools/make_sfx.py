@@ -1,13 +1,13 @@
 """Synthesizes SparkMod's custom Bolt Titan sound effects.
 
 Run from the repo root:  python3 tools/make_sfx.py
-Writes .ogg files into SparkMod_V229_Resources/sounds/sparkmod/ (needs numpy + ffmpeg).
+Writes .ogg files into SparkMod_V230_Resources/sounds/sparkmod/ (needs numpy + ffmpeg).
 """
 import os, subprocess, sys, tempfile, wave
 import numpy as np
 
 SR = 44100
-OUT = sys.argv[1] if len(sys.argv) > 1 else 'SparkMod_V229_Resources/sounds/sparkmod'
+OUT = sys.argv[1] if len(sys.argv) > 1 else 'SparkMod_V230_Resources/sounds/sparkmod'
 
 
 def t(sec):
@@ -343,6 +343,51 @@ def heartbeat(seed):
     return x * env(n, .002, .3)
 
 
+
+def sword_hit(seed):
+    """Sharp electric slash: bright metallic ring + snapping crackle."""
+    rng = np.random.default_rng(seed)
+    tt = t(.55)
+    n = len(tt)
+    ring = sum(osc(np.full(n, f), 'sin') * np.exp(-tt * k) * a for f, k, a in ((1860, 9, .5), (2790, 12, .35), (4150, 16, .25)))
+    swish = highpass(rng.uniform(-1, 1, n), 2500) * np.exp(-tt * 22) * 1.2
+    snap = crackle(n, 4200 * np.exp(-tt * 9), rng) * 1.1
+    thud = osc(150 * np.exp(-tt * 18) + 70, 'sin') * np.exp(-tt * 20) * .8
+    return dist(ring + swish + snap + thud, 2.0) * env(n, .001, .15)
+
+
+def sword_swing(seed):
+    rng = np.random.default_rng(seed)
+    tt = t(.35)
+    n = len(tt)
+    sweep = lowpass(rng.uniform(-1, 1, n), 600 + 5000 * np.sin(np.pi * tt / .35)) * np.sin(np.pi * tt / .35) * 1.3
+    hum = osc(220 + 500 * tt, 'saw') * .15 * np.sin(np.pi * tt / .35)
+    return (sweep + hum + crackle(n, 900, rng) * .4) * env(n, .01, .05)
+
+
+def sword_dash(seed):
+    rng = np.random.default_rng(seed)
+    tt = t(1.1)
+    n = len(tt)
+    zip_ = osc(300 * (30 ** np.clip(tt / .25, 0, 1)), 'saw') * np.exp(-np.maximum(tt - .25, 0) * 10) * .5
+    tb = np.maximum(tt - .2, 0)
+    crack = (lowpass(rng.uniform(-1, 1, n), 2500 * np.exp(-tb * 4) + 200) * np.exp(-tb * 4) * 2.2) * (tt > .2)
+    boom = osc(70 * np.exp(-tb * 5) + 35, 'sin') * np.exp(-tb * 5) * 1.3 * (tt > .2)
+    return dist(zip_ + crack + boom + crackle(n, 3000 * np.exp(-tt * 3), rng), 2.2) * env(n, .005, .3)
+
+
+def sword_chain(seed):
+    rng = np.random.default_rng(seed)
+    tt = t(.9)
+    n = len(tt)
+    x = np.zeros(n)
+    for k, st in enumerate((0, .12, .24)):
+        i0 = int(SR * st)
+        tb = tt[:n - i0]
+        x[i0:] += (crackle(n - i0, 5000 * np.exp(-tb * 12), rng) * 1.2 + osc(2400 - k * 500 + 0 * tb, 'sin') * np.exp(-tb * 14) * .4)
+    return dist(x, 1.8) * env(n, .001, .2)
+
+
 if __name__ == '__main__':
     for i in range(3):
         write(f'zap{i + 1}', zap(10 + i))
@@ -367,3 +412,7 @@ if __name__ == '__main__':
     write('godmode', godmode(170))
     write('sun_explode', sun_explode(180))
     write('heartbeat', heartbeat(190))
+    write('sword_hit', sword_hit(200))
+    write('sword_swing', sword_swing(210))
+    write('sword_dash', sword_dash(220))
+    write('sword_chain', sword_chain(230))

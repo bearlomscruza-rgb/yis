@@ -1,0 +1,193 @@
+{
+  "format_version": "1.8.0",
+  "render_controllers": {
+    "controller.render.sparkmod.bolt_titan": {
+      "geometry": "Geometry.magma",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "sparkmod_glowing_eyes": "Material.glowing_eyes"
+        }
+      ],
+      "textures": [
+        "Texture.default"
+      ],
+      "part_visibility": [
+        {
+          "*": true
+        },
+        {
+          "chest_core": false
+        },
+        {
+          "rocks_a_body": "query.property('sparkmod:rocks')<1"
+        },
+        {
+          "rocks_a_rarm": "query.property('sparkmod:rocks')<1"
+        },
+        {
+          "rocks_a_rleg": "query.property('sparkmod:rocks')<1"
+        },
+        {
+          "rocks_b_body": "query.property('sparkmod:rocks')<2"
+        },
+        {
+          "rocks_b_larm": "query.property('sparkmod:rocks')<2"
+        },
+        {
+          "rocks_b_lleg": "query.property('sparkmod:rocks')<2"
+        },
+        {
+          "rocks_c_body": "query.property('sparkmod:rocks')<3"
+        },
+        {
+          "rocks_c_rarm": "query.property('sparkmod:rocks')<3"
+        },
+        {
+          "rocks_c_larm": "query.property('sparkmod:rocks')<3"
+        },
+        {
+          "heart": false
+        },
+        {
+          "god_halo": false
+        },
+        {
+          "flames": true
+        }
+      ]
+    },
+    "controller.render.sparkmod.bolt_titan_phase3": {
+      "arrays": {
+        "textures": {
+          "Array.skins": [
+            "Texture.default",
+            "Texture.god"
+          ]
+        },
+        "geometries": {
+          "Array.geos": [
+            "Geometry.default",
+            "Geometry.god"
+          ]
+        }
+      },
+      "geometry": "Array.geos[(query.property('sparkmod:godmode')>0 || query.property('sparkmod:god_form')) ? 1 : 0]",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "sparkmod_glowing_eyes": "Material.glowing_eyes"
+        }
+      ],
+      "textures": [
+        "Array.skins[(query.property('sparkmod:godmode')>0 || query.property('sparkmod:god_form')) ? 1 : 0]"
+      ],
+      "ignore_lighting": false,
+      "overlay_color": {
+        "r": 1.0,
+        "g": 0.86,
+        "b": 0.18,
+        "a": "(query.property('sparkmod:godmode')>0 || query.property('sparkmod:god_form')) ? 0.04+0.03*math.sin(query.life_time*240) : 0"
+      },
+      "part_visibility": [
+        {
+          "*": true
+        },
+        {
+          "chest_core": "query.property('sparkmod:godmode')==0"
+        },
+        {
+          "heart": "(query.property('sparkmod:godmode')>0 || query.property('sparkmod:god_form'))"
+        },
+        {
+          "god_halo": "(query.property('sparkmod:godmode')>0 || query.property('sparkmod:god_form'))"
+        },
+        {
+          "flames": true
+        },
+        {
+          "rocks_a_body": "query.property('sparkmod:rocks')<1"
+        }
+      ]
+    },
+    "controller.render.sparkmod.bolt_titan_glow": {
+      "geometry": "Geometry.default",
+      "materials": [
+        {
+          "*": "Material.default"
+        },
+        {
+          "sparkmod_glowing_eyes": "Material.glowing_eyes"
+        }
+      ],
+      "textures": [
+        "Array.crack[query.property('sparkmod:cracks')]"
+      ],
+      "ignore_lighting": true,
+      "overlay_color": {
+        "r": 1.0,
+        "g": 0.86,
+        "b": 0.18,
+        "a": "0.10+0.08*math.sin(query.life_time*240)"
+      },
+      "arrays": {
+        "textures": {
+          "Array.crack": [
+            "Texture.low1",
+            "Texture.low1",
+            "Texture.low2",
+            "Texture.low"
+          ]
+        }
+      },
+      "part_visibility": [
+        {
+          "*": true
+        },
+        {
+          "chest_core": true
+        },
+        {
+          "rocks_a_body": "query.property('sparkmod:rocks')<1"
+        },
+        {
+          "rocks_a_rarm": "query.property('sparkmod:rocks')<1"
+        },
+        {
+          "rocks_a_rleg": "query.property('sparkmod:rocks')<1"
+        },
+        {
+          "rocks_b_body": "query.property('sparkmod:rocks')<2"
+        },
+        {
+          "rocks_b_larm": "query.property('sparkmod:rocks')<2"
+        },
+        {
+          "rocks_b_lleg": "query.property('sparkmod:rocks')<2"
+        },
+        {
+          "rocks_c_body": "query.property('sparkmod:rocks')<3"
+        },
+        {
+          "rocks_c_rarm": "query.property('sparkmod:rocks')<3"
+        },
+        {
+          "rocks_c_larm": "query.property('sparkmod:rocks')<3"
+        },
+        {
+          "heart": false
+        },
+        {
+          "god_halo": false
+        },
+        {
+          "flames": true
+        }
+      ]
+    }
+  }
+}
