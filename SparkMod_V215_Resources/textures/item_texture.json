@@ -1,0 +1,39 @@
+{
+  "resource_pack_name": "SparkMod V131",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "spark_mace": {
+      "textures": "textures/items/spark_mace"
+    },
+    "spark_sword": {
+      "textures": "textures/items/spark_sword"
+    },
+    "spark_saddle": {
+      "textures": "textures/items/spark_saddle"
+    },
+    "sparkite": {
+      "textures": "textures/items/sparkite"
+    },
+    "god_helmet": {
+      "textures": "textures/items/god_helmet"
+    },
+    "god_chestplate": {
+      "textures": "textures/items/god_chestplate"
+    },
+    "god_leggings": {
+      "textures": "textures/items/god_leggings"
+    },
+    "god_boots": {
+      "textures": "textures/items/god_boots"
+    },
+    "spark_token": {
+      "textures": "textures/items/spark_token"
+    },
+    "awakened_spark_sword": {
+      "textures": "textures/items/awakened_spark_sword"
+    },
+    "teammate_compass_vanilla": {
+      "textures": "textures/items/compass_item"
+    }
+  }
+}

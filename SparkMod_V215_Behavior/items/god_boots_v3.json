@@ -1,0 +1,34 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "sparkmod:god_boots_v3",
+      "menu_category": {
+        "category": "equipment",
+        "group": "itemGroup.name.boots"
+      }
+    },
+    "components": {
+      "minecraft:display_name": {
+        "value": "Spark Boots V3"
+      },
+      "minecraft:icon": {
+        "textures": {
+          "default": "god_boots"
+        }
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:wearable": {
+        "slot": "slot.armor.feet",
+        "protection": 3
+      },
+      "minecraft:armor": {
+        "protection": 3
+      },
+      "minecraft:enchantable": {
+        "value": 15,
+        "slot": "armor_feet"
+      }
+    }
+  }
+}

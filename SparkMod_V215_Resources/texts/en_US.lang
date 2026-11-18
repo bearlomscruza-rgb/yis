@@ -1,0 +1,6 @@
+
+entity.sparkmod:bolt_titan.name=Bolt Titan
+item.spawn_egg.entity.sparkmod:bolt_titan.name=Bolt Titan Spawn Egg
+
+entity.sparkmod:spark_demon.name=Spark Demon
+entity.sparkmod:bolt_titan_phase3.name=Possessed Bolt Titan

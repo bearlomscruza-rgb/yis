@@ -1,0 +1,28 @@
+{
+  "format_version": "1.21.90",
+  "minecraft:item": {
+    "description": {
+      "identifier": "sparkmod:teammate_compass",
+      "menu_category": {
+        "category": "equipment"
+      }
+    },
+    "components": {
+      "minecraft:display_name": {
+        "value": "\u00a76Teammate Compass"
+      },
+      "minecraft:icon": {
+        "textures": {
+          "default": "teammate_compass_vanilla"
+        }
+      },
+      "minecraft:max_stack_size": 1,
+      "minecraft:use_modifiers": {
+        "use_duration": 0.1,
+        "movement_modifier": 1.0
+      },
+      "minecraft:interact_button": "Open Teams",
+      "sparkmod:teammate_menu_use": {}
+    }
+  }
+}

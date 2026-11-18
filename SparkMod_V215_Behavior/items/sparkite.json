@@ -1,0 +1,25 @@
+{
+  "format_version": "1.21.0",
+  "minecraft:item": {
+    "description": {
+      "identifier": "sparkmod:sparkite",
+      "menu_category": {
+        "category": "items"
+      }
+    },
+    "components": {
+      "minecraft:display_name": {
+        "value": "Sparkite"
+      },
+      "minecraft:icon": {
+        "textures": {
+          "default": "sparkite"
+        }
+      },
+      "minecraft:max_stack_size": 64,
+      "minecraft:fire_resistant": {
+        "value": true
+      }
+    }
+  }
+}
