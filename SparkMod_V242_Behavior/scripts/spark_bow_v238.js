@@ -201,7 +201,9 @@ function fireJudgment(p){
   F.arc(d,eye,aim,{color:F.C.white,size:.5,jag:1.2,branches:3,max:200});
  },k*2);
  // ... and a pillar of light from the sky onto the impact point.
- for(let k=0;k<12;k++)system.runTimeout(()=>{for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2,k%2?F.C.white:F.C.gold,.3,.8);},k*2);
+ // V242: the sky pillar stays twice as long (2.4 s), then fades away over 1 s.
+ for(let k=0;k<24;k++)system.runTimeout(()=>{for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2,k%2?F.C.white:F.C.gold,.3,.8);},k*2);
+ for(let k=0;k<10;k++)system.runTimeout(()=>{const f=1-(k+1)/11;for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2*(.4+.6*f),F.C.gold,.3,.8*f);},48+k*2);
  F.flash(d,aim,14,F.C.white);F.flash(d,aim,8,F.C.gold);
  for(let k=0;k<4;k++)system.runTimeout(()=>{F.shock(d,impact,6+k*5,k%2?F.C.white:F.C.gold,1);F.pulse(d,aim,8+k*6,F.C.gold,.7);},k*3);
  F.debris(d,impact,4,80);F.smoke(d,aim,14,2,F.C.dust,.8);F.sparks(d,aim,90,14,F.C.gold);
@@ -229,7 +231,7 @@ function fireJudgment(p){
  system.runTimeout(()=>blastCrater(d,impact),3);
  safe(()=>p.onScreenDisplay.setActionBar('§6⚡ Storm Judgment fired! §7Reactivate the bow at the Spark Shrine (10 tokens) - 10 min cooldown.'));
 }
-// V241: a crater 50 blocks across and 40 blocks deep - straight round walls stepping in at the
+// V242: a crater 50 blocks across that goes all the way down to bedrock - straight round walls stepping in at the
 // bottom; any hill/trees up to 15 blocks above it are blasted away too. Dug over a few ticks.
 const CRATER_R=25,CRATER_DEPTH=40,CRATER_ABOVE=15;
 function blastCrater(d,at){
@@ -243,13 +245,16 @@ function blastCrater(d,at){
   }
  }
  const fill=(x1,y1,z1,x2,y2,z2)=>safe(()=>d.runCommand(`fill ${x1} ${y1} ${z1} ${x2} ${y2} ${z2} air`));
- const bottom=Math.max(floor,y-CRATER_DEPTH+1);          // 40 blocks deep (never below bedrock level)
+ const bottom=floor;                                     // V242: all the way down to bedrock level
  // [radius, from, to]: full 50-block-wide walls, then two narrowing steps at the bottom
- const layers=[[CRATER_R,Math.max(bottom,y-33),y+CRATER_ABOVE],[21,Math.max(bottom,y-37),y-34],[15,bottom,y-38]];
+ const layers=[[CRATER_R,Math.min(y,bottom+6),y+CRATER_ABOVE],[21,bottom+2,Math.min(y,bottom+6)-1],[15,bottom,bottom+1]];
  const jobs=[];
  for(const [r,y1,y2] of layers){
   if(y2<y1)continue;
-  for(let dx=-r;dx<=r;dx++){const hw=Math.floor(Math.sqrt(r*r-dx*dx));jobs.push([x+dx,y1,z-hw,x+dx,y2,z+hw]);}
+  for(let dx=-r;dx<=r;dx++){
+   const hw=Math.floor(Math.sqrt(r*r-dx*dx));
+   for(let top=y2;top>=y1;top-=200)jobs.push([x+dx,Math.max(y1,top-199),z-hw,x+dx,top,z+hw]);   // keep each fill under the block limit
+  }
  }
  let i=0;
  const step=()=>{for(let n=0;n<8&&i<jobs.length;n++,i++)fill(...jobs[i]);if(i<jobs.length)system.runTimeout(step,1);};
