@@ -2,7 +2,7 @@
 
 python3 tools/paint_titan.py
 Writes textures/entity/bolt_titan.png (phase 1), bolt_titan_low.png (phase 2+: glowing yellow)
-and bolt_titan_god.png (Spark God) into SparkMod_V233_Resources.
+and bolt_titan_god.png (Spark God) into SparkMod_V234_Resources.
 
 The model maps one rectangle ("patch") of the texture onto every face of a cube, so each patch
 is painted as a self-contained, low-noise pixel-art tile with a darker rim (cube edges read clearly)
@@ -11,7 +11,7 @@ and colors quantized to a short Minecraft-style shade ramp.
 import numpy as np
 from PIL import Image
 
-RP = 'SparkMod_V233_Resources/textures/entity/'
+RP = 'SparkMod_V234_Resources/textures/entity/'
 rng = np.random.default_rng(220)
 
 

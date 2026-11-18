@@ -2,14 +2,15 @@
   "format_version": "1.21.0",
   "minecraft:item": {
     "description": {
-      "identifier": "sparkmod:awakened_spark_sword",
+      "identifier": "sparkmod:spark_sword",
       "menu_category": {
-        "category": "none"
+        "category": "equipment",
+        "group": "itemGroup.name.sword"
       }
     },
     "components": {
       "minecraft:display_name": {
-        "value": "Awakened Spark Sword"
+        "value": "Spark Sword"
       },
       "minecraft:icon": {
         "textures": {
@@ -30,7 +31,9 @@
         "movement_modifier": 1.0
       },
       "minecraft:interact_button": "Lightning Dash",
-      "sparkmod:sword_dash": {}
+      "minecraft:custom_components": [
+        "sparkmod:sword_dash"
+      ]
     }
   }
 }

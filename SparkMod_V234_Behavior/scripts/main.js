@@ -16,7 +16,7 @@ import './temple.js';
 import './pvp_arena.js';
 import { world, system, ItemStack, EquipmentSlot, EnchantmentTypes } from '@minecraft/server';
 import { ActionFormData, ModalFormData } from '@minecraft/server-ui';
-import { issueGodArmor, rechargeSparkChest, sparkChestStatus } from './spark_systems_v229.js';
+import { issueGodArmor, rechargeSparkChest, sparkChestStatus, sparkChestAwakened } from './spark_systems_v229.js';
 import * as F from './titan_fx_v217.js';
 
 // SparkMod V25: gameplay polish pass. Requires custom item/entity/block JSON.
@@ -501,6 +501,7 @@ function awakenPiece(p,index){
  setProp(p,'lastAwakeningMoon',moon.moonId);
  awakeningPurpleBeam(p);
  tell(p,`§e⚡ Spark ${name} awakened! 5 Spark Tokens consumed. You must wait until the next Spark Moon to awaken another piece.`);
+ if(name==='Chestplate')tell(p,'§6⚡ SPARK MODE UNLOCKED: a hit that would kill you instead makes you IMMORTAL for 10 seconds (Speed IV, Strength II, lightning on everyone nearby). Recharge it at the Spark Shrine afterwards.');
 }
 function awakenSword(p){
  const moon=sparkMoonStatus();
@@ -715,7 +716,7 @@ function altarUI(p){system.run(async()=>{
  .button('Craft Spark Mace')
  .button('Awaken Helmet — 5 Tokens').button('Awaken Chestplate — 5 Tokens')
  .button('Awaken Leggings — 5 Tokens').button('Awaken Boots — 5 Tokens').button('Awaken Held Spark Sword — 5 Tokens').button('Awaken Held Spark Mace — 5 Tokens').button('§6⚒ Spark Forge — Upgrade with Sparkite')
- .button(chestState==='charged'?'§7Spark Chestplate: charged':'§6⚡ Recharge Spark Chestplate — 3 Tokens').button('Close');
+ .button(chestState==='charged'?(sparkChestAwakened(p)?'§7Spark Mode: charged':'§7Spark Mode: awaken the Chestplate to unlock'):'§6⚡ Recharge Spark Chestplate — 3 Tokens').button('Close');
  const r=await showForm(p,form);if(!r||r.canceled)return;
  if(r.selection===0)craft(p,'mace');
  else if(r.selection>=1&&r.selection<=4)awakenPiece(p,r.selection-1);
@@ -1277,8 +1278,11 @@ world.afterEvents.entityHurt?.subscribe(ev=>{
 });
 // V230 Lightning Dash: use (right-click) the Spark Sword to dash forward as a bolt of lightning,
 // damaging and briefly stunning every enemy along the path.
+const lastDashTick=new Map();
 function lightningDash(p){
   const w=held(p);if(!isSparkSword(w))return;
+  if(system.currentTick-(lastDashTick.get(p.id)??-99)<4)return;   // several triggers can fire for one press
+  lastDashTick.set(p.id,system.currentTick);
   const awakened=w===I.awakenedSword,key=awakened?'swordDashCDa':'swordDashCD';
   if(!readyQuiet(p,key)){safe(()=>p.onScreenDisplay.setActionBar(`§7Lightning Dash recharging: ${Math.ceil((Number(prop(p,key,0))-Date.now())/1000)}s`));return;}
   cooldown(p,key,awakened?6000:10000);
@@ -1313,6 +1317,25 @@ function lightningDash(p){
 system.beforeEvents.startup.subscribe(({itemComponentRegistry})=>{
   safe(()=>itemComponentRegistry.registerCustomComponent('sparkmod:sword_dash',{onUse(event){const p=event.source;system.run(()=>lightningDash(p));}}));
 });
+// V234: three ways to dash, so it works on every device and game version:
+//  1. use the sword (right-click / hold the use button),  2. itemUse fallback,
+//  3. DOUBLE-TAP SNEAK while holding the Spark Sword.
+world.afterEvents.itemUse.subscribe(ev=>{
+  const p=ev.source;
+  if(p?.typeId==='minecraft:player'&&isSparkSword(ev.itemStack?.typeId))system.run(()=>lightningDash(p));
+});
+const dashSneak=new Map();
+system.runInterval(()=>{
+  for(const p of world.getAllPlayers()){
+    const s=dashSneak.get(p.id)||{was:false,lastTap:-99};
+    const now=p.isSneaking===true;
+    if(now&&!s.was&&isSparkSword(held(p))){
+      if(system.currentTick-s.lastTap<=8){s.lastTap=-99;lightningDash(p);}
+      else s.lastTap=system.currentTick;
+    }
+    s.was=now;dashSneak.set(p.id,s);
+  }
+},1);
 // V126: particles only on confirmed critical melee impacts; no idle particle loop.
 // Critical chain particles are emitted by strikeCritTarget on every third crit.
 function awakenedWeaponSparks(p, kind, burst=false) {

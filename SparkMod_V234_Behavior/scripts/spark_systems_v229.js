@@ -233,7 +233,13 @@ function stillExists(serial,dim,loc,reach=2){
 // ============================================================ 3. Spark Chestplate
 const SPARK_UNTIL='sparkmod:spark_mode_until',USED='sparkmod:spark_chest_used',DRAINED='sparkmod:spark_drained';
 const SPARK_MS=10000;
-const wearingSparkChest=p=>ARMOR.chestplate.includes(safe(()=>p.getComponent('minecraft:equippable')?.getEquipment(EquipmentSlot.Chest)?.typeId));
+// V234: Spark Mode (10 s of immortality) is unlocked by AWAKENING the Spark Chestplate.
+const chestItem=p=>safe(()=>p.getComponent('minecraft:equippable')?.getEquipment(EquipmentSlot.Chest));
+const wearingSparkChest=p=>{
+ const it=chestItem(p);
+ if(!ARMOR.chestplate.includes(it?.typeId))return false;
+ return safe(()=>it.getDynamicProperty('sparkmod:awakened')===true,false)||!!safe(()=>it.getLore?.().some(l=>/awaken/i.test(l)),false);
+};
 const inSparkMode=p=>Number(safe(()=>p.getDynamicProperty(SPARK_UNTIL),0)||0)>Date.now();
 const drained=p=>safe(()=>p.getDynamicProperty(DRAINED),false)===true;
 const charged=p=>safe(()=>p.getDynamicProperty(USED),false)!==true;
@@ -303,6 +309,7 @@ system.runInterval(()=>{
 },10);
 // Spark Shrine (the Spark Altar) recharge. pay() must take 3 Spark Tokens and return true.
 export function sparkChestStatus(p){return inSparkMode(p)?'active':charged(p)?'charged':'used';}
+export function sparkChestAwakened(p){return wearingSparkChest(p);}
 export function rechargeSparkChest(p,pay){
  if(charged(p)&&!drained(p)){tell(p,'§eYour Spark Chestplate is already charged.');return;}
  if(inSparkMode(p)){tell(p,'§eWait for Spark Mode to end first.');return;}
