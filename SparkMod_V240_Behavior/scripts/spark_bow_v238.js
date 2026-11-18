@@ -24,6 +24,7 @@ export function initSparkBow(h){host={...host,...h};}
 
 export const isSparkBow=item=>item?.typeId==='minecraft:bow'&&(safe(()=>item.getDynamicProperty('sparkmod:spark_bow'),false)===true||!!safe(()=>item.getLore().includes(MARK),false));
 const heldBow=p=>{const it=safe(()=>p.getComponent('minecraft:equippable')?.getEquipment(EquipmentSlot.Mainhand));return isSparkBow(it)?it:null;};
+const NOT_TARGET=new Set(['minecraft:item','minecraft:xp_orb','minecraft:lightning_bolt','minecraft:arrow']);
 const writeHeld=(p,it)=>safe(()=>p.getComponent('minecraft:equippable').setEquipment(EquipmentSlot.Mainhand,it));
 const awakened=it=>safe(()=>it.getDynamicProperty('sparkmod:awakened'),false)===true;
 const spent=it=>safe(()=>it.getDynamicProperty('sparkmod:bow_spent'),false)===true;
@@ -154,14 +155,14 @@ function pickTarget(p){
  const hits=safe(()=>p.getEntitiesFromViewDirection({maxDistance:96}),[]);
  for(const h of hits){
   const e=h.entity;
-  if(!e||e.id===p.id||e.typeId==='minecraft:item'||!safe(()=>e.getComponent('minecraft:health'),null)||host.isAlly(p,e))continue;
+  if(!e||e.id===p.id||NOT_TARGET.has(e.typeId)||!safe(()=>e.getComponent('minecraft:health'),null)||host.isAlly(p,e))continue;
   return e;
  }
  // Forgiving aim: closest enemy within a narrow cone.
  const v=p.getViewDirection(),eye=p.getHeadLocation();
  let best=null,bestScore=Infinity;
  for(const e of safe(()=>p.dimension.getEntities({location:eye,maxDistance:96}),[])){
-  if(e.id===p.id||e.typeId==='minecraft:item'||!safe(()=>e.getComponent('minecraft:health'),null)||host.isAlly(p,e))continue;
+  if(e.id===p.id||NOT_TARGET.has(e.typeId)||!safe(()=>e.getComponent('minecraft:health'),null)||host.isAlly(p,e))continue;
   const dx=e.location.x-eye.x,dy=e.location.y+1-eye.y,dz=e.location.z-eye.z,dist=Math.hypot(dx,dy,dz);
   const cos=(dx*v.x+dy*v.y+dz*v.z)/(dist||1);
   if(cos<.985)continue;
@@ -224,19 +225,49 @@ function fireJudgment(p){
    if(target.typeId==='minecraft:player')safe(()=>target.onScreenDisplay.setTitle('§6§lJUDGED',{subtitle:'§7Frozen 5s - Weakness III for 10 minutes',fadeInDuration:2,stayDuration:60,fadeOutDuration:10}));
   },2);
  }
+ megaLightning(d,impact);
  system.runTimeout(()=>blastCrater(d,impact),3);
  safe(()=>p.onScreenDisplay.setActionBar('§6⚡ Storm Judgment fired! §7Reactivate the bow at the Spark Shrine (10 tokens) - 10 min cooldown.'));
 }
-// A crater down to bedrock: a wide bowl at the surface narrowing into a deep shaft.
+// V240: a MASSIVE crater - a round pit about 19 blocks across, narrowing into a wide round
+// shaft that goes all the way down to bedrock.
 function blastCrater(d,at){
  const x=Math.floor(at.x),y=Math.floor(at.y),z=Math.floor(at.z);
  const floor=d.id==='minecraft:overworld'?-59:d.id==='minecraft:nether'?5:0;
- const corners=[[x-5,z-5],[x+5,z-5],[x-5,z+5],[x+5,z+5],[x,z]];
- if(d.id==='minecraft:overworld'&&corners.some(([cx,cz])=>safe(()=>protectedArea({x:cx,y,z:cz}),false))){
-  F.shock(d,at,8,F.C.white,1);return;                         // never blast a protected Spark structure
+ const R=9;
+ const ring=[];for(let k=0;k<12;k++){const a=k*Math.PI/6;ring.push([x+Math.round(Math.cos(a)*(R+1)),z+Math.round(Math.sin(a)*(R+1))]);}
+ if(d.id==='minecraft:overworld'&&[[x,z],...ring].some(([cx,cz])=>safe(()=>protectedArea({x:cx,y,z:cz}),false))){
+  F.shock(d,at,12,F.C.white,1);return;                        // never blast a protected Spark structure
  }
  const fill=(x1,y1,z1,x2,y2,z2)=>safe(()=>d.runCommand(`fill ${x1} ${y1} ${z1} ${x2} ${y2} ${z2} air`));
- fill(x-4,y-2,z-2,x+4,y+4,z+2);fill(x-2,y-2,z-4,x+2,y+4,z+4);fill(x-3,y-2,z-3,x+3,y+4,z+3);   // bowl
- fill(x-3,y-5,z-1,x+3,y-2,z+1);fill(x-1,y-5,z-3,x+1,y-2,z+3);fill(x-2,y-5,z-2,x+2,y-2,z+2);  // bowl taper
- for(let top=y-5;top>floor;top-=64){const bottom=Math.max(floor,top-63);fill(x-1,bottom,z-1,x+1,top,z+1);} // shaft to bedrock
+ // round slices: [radius, from y, to y]
+ const layers=[[9,y-4,y+8],[7,y-9,y-5],[5,y-13,y-10]];
+ for(const [r,y1,y2] of layers)for(let dx=-r;dx<=r;dx++){
+  const hw=Math.floor(Math.sqrt(r*r-dx*dx));
+  fill(x+dx,y1,z-hw,x+dx,y2,z+hw);
+ }
+ // the shaft to bedrock (radius 4), split so no single fill is too large
+ for(let dx=-4;dx<=4;dx++){
+  const hw=Math.floor(Math.sqrt(16-dx*dx));
+  for(let top=y-14;top>floor;top-=64){const bottom=Math.max(floor,top-63);fill(x+dx,bottom,z-hw,x+dx,top,z+hw);}
+ }
+ F.debris(d,at,8,120);F.smoke(d,{x:at.x,y:at.y+2,z:at.z},20,4,F.C.dust,.85);
+}
+// V240: a lightning strike about 10x the size of normal lightning, crashing down on the impact.
+function megaLightning(d,at){
+ const sky={x:at.x,y:at.y+90,z:at.z};
+ for(let k=0;k<3;k++)system.runTimeout(()=>{
+  F.arc(d,sky,{x:at.x,y:at.y+.5,z:at.z},{color:F.C.white,size:3.2,jag:7,branches:6,step:.9,max:320});
+  F.arc(d,{x:sky.x+(Math.random()-.5)*6,y:sky.y,z:sky.z+(Math.random()-.5)*6},{x:at.x,y:at.y+.5,z:at.z},{color:F.C.gold,size:2,jag:6,branches:4,step:1,max:220});
+  F.flash(d,{x:at.x,y:at.y+3,z:at.z},26,F.C.white);
+  safe(()=>d.playSound('ambient.weather.thunder',at,{volume:12,pitch:.5+k*.1}));
+  safe(()=>d.playSound('ambient.weather.lightning.impact',at,{volume:8,pitch:.6}));
+ },k*4);
+ // a ring of real lightning around the impact
+ for(let k=0;k<12;k++)system.runTimeout(()=>{
+  const a=k*Math.PI/6,q={x:at.x+Math.cos(a)*4.5,y:at.y,z:at.z+Math.sin(a)*4.5};
+  safe(()=>d.spawnEntity('minecraft:lightning_bolt',q));
+ },1+Math.floor(k/3));
+ F.sfx(d,'sparkmod.titan.explode',at,10,.6);
+ F.shake(d,at,96,3.5,1.8);
 }

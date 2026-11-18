@@ -1,13 +1,13 @@
 {
   "format_version": 2,
   "header": {
-    "name": "Spark Mod V239 Resources Pack",
+    "name": "Spark Mod V240 Resources Pack",
     "description": "Droppable maces and Spark equipment; storage ejection and death drops.",
     "uuid": "ea70f057-174f-48b3-9ca5-7fa93fe5c2b0",
     "version": [
       2,
-      3,
-      9
+      4,
+      0
     ],
     "min_engine_version": [
       1,
@@ -21,8 +21,8 @@
       "uuid": "486784ea-328e-4ae0-bc64-f4237f55211d",
       "version": [
         2,
-        3,
-        9
+        4,
+        0
       ]
     }
   ]
