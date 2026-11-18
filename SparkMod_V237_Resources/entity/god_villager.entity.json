@@ -1,0 +1,20 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "sparkmod:god_villager",
+      "materials": {
+        "default": "entity_alphatest"
+      },
+      "textures": {
+        "default": "textures/entity/villager2/villager"
+      },
+      "geometry": {
+        "default": "geometry.villager.v2"
+      },
+      "render_controllers": [
+        "controller.render.sparkmod.god_villager"
+      ]
+    }
+  }
+}

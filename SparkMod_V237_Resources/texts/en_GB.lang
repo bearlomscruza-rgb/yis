@@ -5,3 +5,4 @@ item.spawn_egg.entity.sparkmod:bolt_titan.name=Bolt Titan Spawn Egg
 entity.sparkmod:spark_demon.name=Spark Demon
 entity.sparkmod:bolt_titan_phase3.name=Possessed Bolt Titan
 tile.sparkmod:scorched_grass.name=Scorched Grass
+entity.sparkmod:god_villager.name=God Villager

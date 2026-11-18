@@ -1,0 +1,467 @@
+{
+  "tiers": [
+    {
+      "total_exp_required": 0,
+      "groups": [
+        {
+          "num_to_select": 11,
+          "trades": [
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 32
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:diamond_helmet",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "protection",
+                          "level": 4
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        },
+                        {
+                          "id": "respiration",
+                          "level": 3
+                        },
+                        {
+                          "id": "aqua_affinity",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 40
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:diamond_chestplate",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "protection",
+                          "level": 4
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        },
+                        {
+                          "id": "thorns",
+                          "level": 3
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 36
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:diamond_leggings",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "protection",
+                          "level": 4
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        },
+                        {
+                          "id": "swift_sneak",
+                          "level": 3
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 32
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:diamond_boots",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "protection",
+                          "level": 4
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        },
+                        {
+                          "id": "feather_falling",
+                          "level": 4
+                        },
+                        {
+                          "id": "depth_strider",
+                          "level": 3
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 36
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:diamond_sword",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "sharpness",
+                          "level": 5
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        },
+                        {
+                          "id": "looting",
+                          "level": 3
+                        },
+                        {
+                          "id": "fire_aspect",
+                          "level": 2
+                        },
+                        {
+                          "id": "knockback",
+                          "level": 2
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 30
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:diamond_axe",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "sharpness",
+                          "level": 5
+                        },
+                        {
+                          "id": "efficiency",
+                          "level": 5
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 30
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:diamond_pickaxe",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "efficiency",
+                          "level": 5
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        },
+                        {
+                          "id": "fortune",
+                          "level": 3
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 20
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:diamond_shovel",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "efficiency",
+                          "level": 5
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        },
+                        {
+                          "id": "fortune",
+                          "level": 3
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 28
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:bow",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "power",
+                          "level": 5
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "infinity",
+                          "level": 1
+                        },
+                        {
+                          "id": "flame",
+                          "level": 1
+                        },
+                        {
+                          "id": "punch",
+                          "level": 2
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 36
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:trident",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "loyalty",
+                          "level": 3
+                        },
+                        {
+                          "id": "impaling",
+                          "level": 5
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        },
+                        {
+                          "id": "channeling",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            },
+            {
+              "wants": [
+                {
+                  "item": "minecraft:emerald",
+                  "quantity": 24
+                }
+              ],
+              "gives": [
+                {
+                  "item": "minecraft:crossbow",
+                  "quantity": 1,
+                  "functions": [
+                    {
+                      "function": "specific_enchants",
+                      "enchants": [
+                        {
+                          "id": "quick_charge",
+                          "level": 3
+                        },
+                        {
+                          "id": "multishot",
+                          "level": 1
+                        },
+                        {
+                          "id": "unbreaking",
+                          "level": 3
+                        },
+                        {
+                          "id": "mending",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "max_uses": 3,
+              "reward_exp": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

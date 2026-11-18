@@ -164,23 +164,27 @@ function moonUniqueItem(r) {
   return UNIQUE_ROLLS[index] ?? null;
 }
 function moonRemainingFraction(r) {return Math.max(0,Math.min(1,(r-.905)/.095));}
-// V236 roll table (same with or without a Spark Moon):
-//  each god armour piece 20%, Spark Mace 15%, Spark Sword 1.5%, God Villager 0.5%,
-//  God Apple / Ore / Cloud Loot 1% each. Items that already exist in the world can't be rolled:
-//  landing on one gives an unclaimed piece instead, or normal loot when everything is claimed.
+// V237 roll table (same with or without a Spark Moon):
+//  each God Armour piece 17.5%, Spark Mace 15%, Spark Sword 15%.
+//  If the item you land on already exists in the world you get loot instead:
+//  ore 50%, God Apple 30%, cloud loot 19%, God Villager 1%.
 const ROLL_TABLE=[
-  [.20,'unique','sparkmod:god_helmet'],[.40,'unique','sparkmod:god_chestplate'],
-  [.60,'unique','sparkmod:god_leggings'],[.80,'unique','sparkmod:god_boots'],
-  [.95,'unique','minecraft:mace'],[.965,'unique','sparkmod:spark_sword'],
-  [.97,'villager'],[.98,'apple'],[.99,'ore'],[1.01,'cloud']
+  [.175,'unique','sparkmod:god_helmet'],[.35,'unique','sparkmod:god_chestplate'],
+  [.525,'unique','sparkmod:god_leggings'],[.70,'unique','sparkmod:god_boots'],
+  [.85,'unique','minecraft:mace'],[1.01,'unique','sparkmod:spark_sword']
 ];
+const LOOT_TABLE=[[.50,'ore'],[.80,'apple'],[.99,'cloud'],[1.01,'villager']];
+function lootKind(){const r=Math.random();for(const [max,k] of LOOT_TABLE)if(r<max)return k;return 'cloud';}
 function rollKind(r){for(const [max,kind,id] of ROLL_TABLE)if(r<max)return {kind,id};return {kind:'cloud'};}
 function rangeFor(id){let lo=0;for(const [max,kind,i] of ROLL_TABLE){if(i===id)return (lo+max)/2;lo=max;}return null;}
 const prettyId=id=>id.replace('sparkmod:god_','God ').replace('sparkmod:','').replace('minecraft:mace','Spark Mace').replaceAll('_',' ');
 function rewardName(value) {
   const {r}=sparkPrize(value);
   const k=rollKind(r);
-  if(k.kind==='unique')return '§6'+prettyId(k.id).toUpperCase();
+  if(k.kind==='unique'){
+    const claimed=String(prop(world,'uniqueSparkRolls','')).split('|').includes(k.id);
+    return claimed?'§7'+prettyId(k.id).toUpperCase()+' §8(ALREADY CLAIMED) §7- LOOT':'§6'+prettyId(k.id).toUpperCase();
+  }
   return {villager:'§6GOD VILLAGER',apple:'§dENCHANTED GOD APPLE',ore:'§eRANDOM ORE',cloud:'§fCLOUD LOOT'}[k.kind];
 }
 // Fruit-style roulette: quick reward cards, then progressively slower stops.
@@ -242,7 +246,7 @@ async function openSparkRollMenu(p, attempt=0){
   if(!valid(p))return;
   const form=new ActionFormData()
     .title('§e⚡ ROLL A SPARK')
-    .body('§6☁ LIGHTNING CLOUD ☁\n§eSpend 1 Spark Token to roll for a reward!\n§7Pity: §f'+Number(prop(p,'sparkPity',0))+'/'+PITY_LIMIT+' §7(guaranteed unique Spark gear at '+PITY_LIMIT+')'+'\n§6Odds: §eeach God Armour piece 20%, Spark Mace 15%, Spark Sword 1.5%')
+    .body('§6☁ LIGHTNING CLOUD ☁\n§eSpend 1 Spark Token to roll for a reward!\n§7Pity: §f'+Number(prop(p,'sparkPity',0))+'/'+PITY_LIMIT+' §7(guaranteed unique Spark gear at '+PITY_LIMIT+')'+'\n§6Odds: §eeach God Armour piece 17.5%, Spark Mace 15%, Spark Sword 15%\n§7Already-claimed item = loot: ore 50%, God Apple 30%, cloud 19%, God Villager 1%')
     .button('§e⚡ ROLL A SPARK — 1 Token','textures/ui/spark_storm_cloud')
     .button('§c✕ EXIT');
   try{
@@ -299,6 +303,10 @@ function claimDuplicateArmorReward(){
 function giveUniqueRoll(p, requestedItem=null){
   const id=requestedItem===null?claimUniqueRoll():claimSpecificUniqueRoll(requestedItem);
   if(!id){
+    // V237: the item already exists in this world - you get loot instead.
+    tell(p,'§7That Spark item already exists in this world, so you get loot instead.');
+    lootReward(p,lootKind());
+    return;
     const upgrade=claimDuplicateArmorReward();
     if(upgrade){
       give(p,upgrade);
@@ -306,8 +314,7 @@ function giveUniqueRoll(p, requestedItem=null){
       tell(p,'§6DUPLICATE ROLL UPGRADE! Guaranteed unclaimed Spark '+upgrade.replace('sparkmod:god_','').replaceAll('_',' ')+' §7(World exclusive)');
       return;
     }
-    tell(p,'§7That Spark item already exists in this world.');
-    const r=Math.random();normalLoot(p,r<.25?'apple':r<.75?'ore':'cloud');
+    lootReward(p,lootKind());
     return;
   }
   give(p,id);
@@ -325,16 +332,18 @@ function normalLoot(p,kind){
   give(p,common[Math.floor(Math.random()*common.length)],1+Math.floor(Math.random()*3));
   tell(p,'§7Cloud reward.');
 }
+function lootReward(p,kind){
+  if(kind==='villager'){
+    const v=safe(()=>p.dimension.spawnEntity('sparkmod:god_villager',{x:p.location.x+2,y:p.location.y,z:p.location.z}));
+    if(v)v.nameTag='§6God Villager';
+    tell(p,'§6LEGENDARY! God Villager! §eIt sells max-enchanted diamond gear for emeralds.');return;
+  }
+  normalLoot(p,kind);
+}
 function roll(p, selectedRoll){
   const {r}=sparkPrize(selectedRoll);
   const k=rollKind(r);
-  if(k.kind==='unique'){giveUniqueRoll(p,k.id);return;}
-  if(k.kind==='villager'){
-    const v=safe(()=>p.dimension.spawnEntity('minecraft:villager',{x:p.location.x+2,y:p.location.y,z:p.location.z}));
-    if(v)v.nameTag='§6God Villager';
-    tell(p,'§6LEGENDARY! God Villager!');return;
-  }
-  normalLoot(p,k.kind);
+  giveUniqueRoll(p,k.id);
 }
 // Deliver any owed rewards from an interrupted gacha animation on reconnect.
 world.afterEvents.playerSpawn.subscribe(({player})=>{
@@ -1499,6 +1508,13 @@ world.afterEvents.entityDie.subscribe(ev=>{
  }
 });
 
+// V237: God Villagers glitter so they're easy to find.
+system.runInterval(()=>{
+  for(const p of world.getAllPlayers())for(const v of safe(()=>p.dimension.getEntities({type:'sparkmod:god_villager',location:p.location,maxDistance:48}),[])){
+    F.motes(v.dimension,{x:v.location.x,y:v.location.y+1.2,z:v.location.z},.5,4,F.C.gold);
+    F.orb(v.dimension,{x:v.location.x,y:v.location.y+2.3,z:v.location.z},.8,F.C.gold,1.1,.5);
+  }
+},20);
 // V236: tell every player where the Spark Colosseum and Spark Shrine are when they join.
 world.afterEvents.playerSpawn.subscribe(({player,initialSpawn})=>{
   if(!initialSpawn)return;
