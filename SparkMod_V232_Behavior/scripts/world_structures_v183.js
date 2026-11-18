@@ -44,9 +44,8 @@ function tryPlace(site){
   console.warn('[SparkMod V183] '+site.id+' placement postponed: '+e);
  }
 }
-system.runInterval(()=>{
- for(const site of SITES)tryPlace(site);
-},60);
+// V232: fixed tower/castle positions retired - see structures_v232.js (random plains placement).
+// Structures already built in older worlds are kept and counted.
 
 
 // V192: Guaranteed additional graveyard, centered 300 horizontal blocks EAST
@@ -118,4 +117,4 @@ system.afterEvents.scriptEventReceive.subscribe(ev=>{
 });
 // The region will populate when first visited; chunk generation is not possible
 // before the destination area loads in a world with normal simulation distance.
-system.runInterval(()=>guaranteedSpawnGraveyard(),40);
+// V232: the spawn graveyard is now one of the randomly placed towers (structures_v232.js).

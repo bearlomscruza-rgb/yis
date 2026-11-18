@@ -1,13 +1,13 @@
 """Synthesizes SparkMod's custom Bolt Titan sound effects.
 
 Run from the repo root:  python3 tools/make_sfx.py
-Writes .ogg files into SparkMod_V231_Resources/sounds/sparkmod/ (needs numpy + ffmpeg).
+Writes .ogg files into SparkMod_V232_Resources/sounds/sparkmod/ (needs numpy + ffmpeg).
 """
 import os, subprocess, sys, tempfile, wave
 import numpy as np
 
 SR = 44100
-OUT = sys.argv[1] if len(sys.argv) > 1 else 'SparkMod_V231_Resources/sounds/sparkmod'
+OUT = sys.argv[1] if len(sys.argv) > 1 else 'SparkMod_V232_Resources/sounds/sparkmod'
 
 
 def t(sec):

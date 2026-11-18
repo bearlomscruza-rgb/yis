@@ -70,6 +70,9 @@ function initializeCastle(){
   if(typeof y==='number')ensureSpawnAndPlayers(dim,site,y);
   return;
  }
+ // V232: new worlds no longer build a castle at world spawn - all Spark Castles are placed at
+ // random plains spots by structures_v232.js. A spawn castle already built in an older world is kept.
+ return;
  if(system.currentTick<nextAttempt)return;
  const near=dim.getPlayers().some(p=>Math.hypot(p.location.x-site.x,p.location.z-site.z)<nearbyRange);
  if(!near)return; // Castle chunks must be loaded first.

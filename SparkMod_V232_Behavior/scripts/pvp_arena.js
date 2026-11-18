@@ -94,4 +94,5 @@ function createArena() {
   }
 }
 // An arena is a building only: player-vs-player damage follows the world's PvP setting.
-system.runInterval(createArena,100);
+// V232: the arena is now placed at a random plains spot by structures_v232.js.
+// An arena already built at X 2000, Z 1500 in an older world is kept.

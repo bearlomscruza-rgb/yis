@@ -6,11 +6,14 @@ const SITES=[
  {name:'COLOSSEUM OF SPARKS',x:1750,z:1500,r:53,flag:'sparkmod:colosseum_sparks_v182_placed'},
  {name:'UNDERGROUND FIGHT PIT',x:2000,z:1500,r:38,flag:'sparkmod:underground_pvp_arena_v167_placed'}
 ];
+// V232: the fight pit now has a random location.
+function arenaSite(){try{const s=JSON.parse(world.getDynamicProperty('sparkmod:v232_arena_site')||'null');if(s){SITES[2].x=s.x;SITES[2].z=s.z;}}catch{}}
 const insideByPlayer=new Map();
 const lastRevealByPlayer=new Map();
 const msgLoc=p=>{const a=p.location;return `X: ${Math.floor(a.x)}   Y: ${Math.floor(a.y)}   Z: ${Math.floor(a.z)}`;};
 system.runInterval(()=>{
  try{
+  arenaSite();
   const online=new Set();
   for(const p of world.getDimension('overworld').getPlayers()){
    online.add(p.id);

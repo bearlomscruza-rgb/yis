@@ -6,6 +6,7 @@ import './structure_discovery_v188.js';
 import './structure_discovery_v188.js';
 import './castle_spawn_v200.js';
 import './world_structures_v183.js';
+import './structures_v232.js';
 import './bolt_titan.js';
 import './titan_boss.js';
 import './structure_protection.js';
@@ -769,7 +770,7 @@ system.afterEvents.scriptEventReceive.subscribe(e=>{
  const temple=world.getDynamicProperty('sparkmod:temple_custom_v166_placed')===true;
  const arena=world.getDynamicProperty('sparkmod:underground_pvp_arena_v167_placed')===true;
  tell(p,'§aSparkMod V204 scripts active. Temple: '+(temple?'placed':'not yet placed')+'; Underground Arena: '+(arena?'placed':'not yet placed'));
- tell(p,'§7Visit X1500 Z1500 for Temple; X2000 Z1500 for Arena. Keep nearby chunks loaded.');
+ tell(p,'§7Spark Shrine: X1500 Z1500. Colosseum: X1750 Z1500. Other structures appear on the plains as you explore (/scriptevent sparkmod:structures).');
 });
 // V186: in-game verification. Run /scriptevent sparkmod:health
 system.afterEvents.scriptEventReceive.subscribe(e => {
