@@ -42,8 +42,8 @@
         "max": 1000
       },
       "minecraft:boss": {
-        "should_darken_sky": false,
-        "hud_range": 64,
+        "should_darken_sky": true,
+        "hud_range": 100,
         "name": "Bolt Titan"
       },
       "minecraft:collision_box": {
@@ -141,6 +141,18 @@
           {
             "cause": "lightning",
             "deals_damage": false
+          },
+          {
+            "cause": "fall",
+            "deals_damage": false
+          },
+          {
+            "cause": "suffocation",
+            "deals_damage": false
+          },
+          {
+            "cause": "drowning",
+            "deals_damage": false
           }
         ]
       },
@@ -163,6 +175,9 @@
       "minecraft:behavior.hurt_by_target": {
         "priority": 2,
         "alert_same_type": false
+      },
+      "minecraft:experience_reward": {
+        "on_death": "50"
       }
     },
     "component_groups": {

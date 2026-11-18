@@ -7,6 +7,7 @@ import './structure_discovery_v188.js';
 import './castle_spawn_v200.js';
 import './world_structures_v183.js';
 import './bolt_titan.js';
+import './titan_boss_v216.js';
 import './structure_protection.js';
 // Old Warden challenge replaced with Bolt Titan summoning.
 import './colosseum_v182.js';

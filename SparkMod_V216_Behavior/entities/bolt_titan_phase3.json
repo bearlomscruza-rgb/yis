@@ -42,7 +42,7 @@
         "max": 2000
       },
       "minecraft:boss": {
-        "name": "Bolt Titan \u2014 Possessed Form",
+        "name": "Bolt Titan — Possessed Form",
         "hud_range": 100,
         "should_darken_sky": true
       },
@@ -141,6 +141,18 @@
           {
             "cause": "lightning",
             "deals_damage": false
+          },
+          {
+            "cause": "fall",
+            "deals_damage": false
+          },
+          {
+            "cause": "suffocation",
+            "deals_damage": false
+          },
+          {
+            "cause": "drowning",
+            "deals_damage": false
           }
         ]
       },
@@ -163,6 +175,9 @@
       "minecraft:behavior.hurt_by_target": {
         "priority": 2,
         "alert_same_type": false
+      },
+      "minecraft:experience_reward": {
+        "on_death": "0"
       }
     },
     "component_groups": {

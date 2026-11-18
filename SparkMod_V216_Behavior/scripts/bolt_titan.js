@@ -559,16 +559,20 @@ world.afterEvents.entityDie.subscribe(e=>{
   // Fifth move only advances the first body to phase 3; the final body can be defeated.
   world.setDynamicProperty(LOCK,true);world.setDynamicProperty(PENDING,undefined);
   for(const p of world.getAllPlayers())safe(()=>restore(p,true));
-  b.dimension.spawnItem(new ItemStack('sparkmod:sparkite',6),b.location);
-  b.dimension.spawnItem(new ItemStack('sparkmod:spark_token',7),b.location);
-  ring(b.dimension,b.location,10,48);
-  const winner=Object.entries(read(b,RANK,{})).sort((a,c)=>c[1]-a[1])[0]?.[0];
-  if(winner&&Math.random()<.05){
-   const p=world.getAllPlayers().find(p=>p.name===winner),mace=new ItemStack('minecraft:mace',1);
-   mace.nameTag='§6Spark Mace';mace.setLore(['§8SparkMod: genuine vanilla mace']);
-   const inv=p?.getComponent('minecraft:inventory')?.container;const rest=inv?inv.addItem(mace):mace;
-   if(rest)b.dimension.spawnItem(rest,p?.location||b.location);
-  }
+  // V216: loot appears after the 5-second Ender Dragon-style death show (titan_boss_v216.js).
+  const dim=b.dimension,at={...b.location},rank=read(b,RANK,{});
+  system.runTimeout(()=>safe(()=>{
+   dim.spawnItem(new ItemStack('sparkmod:sparkite',6),at);
+   dim.spawnItem(new ItemStack('sparkmod:spark_token',7),at);
+   ring(dim,at,10,48);
+   const winner=Object.entries(rank).sort((a,c)=>c[1]-a[1])[0]?.[0];
+   if(winner&&Math.random()<.05){
+    const p=world.getAllPlayers().find(p=>p.name===winner),mace=new ItemStack('minecraft:mace',1);
+    mace.nameTag='§6Spark Mace';mace.setLore(['§8SparkMod: genuine vanilla mace']);
+    const inv=p?.getComponent('minecraft:inventory')?.container;const rest=inv?inv.addItem(mace):mace;
+    if(rest)dim.spawnItem(rest,p?.location||at);
+   }
+  }),100);
  });
 });
 
