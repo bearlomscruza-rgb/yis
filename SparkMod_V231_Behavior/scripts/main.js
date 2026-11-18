@@ -1025,10 +1025,10 @@ system.runInterval(() => {
 // implementation. The script samples player descent and approximates both.
 const combatAir = new Map(); // player id => { peakY, drop, descending, dim }
 const maceSlamTick = new Map();
-// V215: a landed downslam starts 20 seconds of smash cooldown for both mace types.
+// V231: a landed downslam starts a 25-second smash cooldown for both normal maces and Spark Maces.
 // Regular mace swings continue. The pre-hurt event cancels subsequent native
 // maceSmash hits when supported by the Bedrock version in use.
-const MACE_SLAM_COOLDOWN_TICKS=20*20;
+const MACE_SLAM_COOLDOWN_TICKS=25*20;
 const maceSlamUntil=new Map();
 const maceAllowedSlamTick=new Map();
 function maceHeld(player){return equipment(player,EquipmentSlot.Mainhand)?.typeId==='minecraft:mace';}
@@ -1036,8 +1036,22 @@ world.beforeEvents.entityHurt?.subscribe(ev=>{
  const attacker=ev.damageSource?.damagingEntity;
  if(attacker?.typeId!=='minecraft:player' || !maceHeld(attacker))return;
  if(ev.damageSource?.cause!=='maceSmash')return;
- if(system.currentTick < (maceSlamUntil.get(attacker.id)||0))ev.cancel=true;
+ const until=maceSlamUntil.get(attacker.id)||0;
+ if(system.currentTick < until){
+  ev.cancel=true;
+  const left=Math.ceil((until-system.currentTick)/20);
+  system.run(()=>safe(()=>attacker.onScreenDisplay.setActionBar(`§c⚡ Downslam recharging: ${left}s`)));
+ }
 });
+// Let the player know when the downslam is ready again.
+system.runInterval(()=>{
+ for(const [id,until] of maceSlamUntil){
+  if(system.currentTick<until)continue;
+  maceSlamUntil.delete(id);
+  const p=world.getAllPlayers().find(q=>q.id===id);
+  if(p){safe(()=>p.onScreenDisplay.setActionBar('§a⚡ Downslam ready!'));safe(()=>p.playSound('random.orb',{volume:.6,pitch:1.6}));}
+ }
+},10);
 world.afterEvents.entityHurt?.subscribe(ev=>{
  const attacker=ev.damageSource?.damagingEntity;
  if(attacker?.typeId!=='minecraft:player'||!maceHeld(attacker))return;
@@ -1048,22 +1062,9 @@ world.afterEvents.entityHurt?.subscribe(ev=>{
  if(system.currentTick < (maceSlamUntil.get(attacker.id)||0))return;
  maceSlamUntil.set(attacker.id,system.currentTick+MACE_SLAM_COOLDOWN_TICKS);
  maceAllowedSlamTick.set(attacker.id,system.currentTick);
- safe(()=>attacker.onScreenDisplay.setActionBar('§6⚡ Downslam cooldown: 20 seconds'));
+ safe(()=>attacker.onScreenDisplay.setActionBar('§6⚡ Downslam cooldown: 25 seconds'));
 });
 
-world.afterEvents.entityHurt?.subscribe(ev=>{
- const attacker=ev.damageSource?.damagingEntity;
- if(attacker?.typeId!=='minecraft:player'||!maceHeld(attacker))return;
- const air=combatAir.get(attacker.id);
- const slammed=ev.damageSource?.cause==='maceSmash' ||
-  (ev.damageSource?.cause==='entityAttack' && air?.descending && air?.drop>=1.5);
- if(!slammed)return;
- if(system.currentTick < (maceSlamUntil.get(attacker.id)||0))return;
- maceSlamUntil.set(attacker.id,system.currentTick+MACE_SLAM_COOLDOWN_TICKS);
- maceAllowedSlamTick.set(attacker.id,system.currentTick);
- maceAllowedSlamTick.set(attacker.id,system.currentTick);
- safe(()=>attacker.onScreenDisplay.setActionBar('§6⚡ Downslam cooldown: 20 seconds'));
-});
 
 function hasSlowFalling(player) { return safe(() => Boolean(player.getEffect('slow_falling')), false); }
 function fallingAttack(player) {
