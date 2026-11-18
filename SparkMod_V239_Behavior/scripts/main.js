@@ -474,7 +474,7 @@ function awakenedPiece(item){return item?.getDynamicProperty('sparkmod:awakened'
 function awakenPiece(p,index){
  const moon = sparkMoonStatus();
  if (!moon.active) {tell(p,`§cArmor awakening is only possible during a Spark Moon. Next moon in ${formatMoonTime(moon.remainingMs)}.`);return;}
- if(Number(prop(p,'lastAwakeningMoon',-1))===moon.moonId){tell(p,'§cOnly ONE armor piece may be awakened per Spark Moon.');return;}
+ // V239: no limit - every piece can be awakened.
  const entry=ARMOR_SLOTS[index]; if(!entry)return;
  const [name,slot,id]=entry;
  const eq=p.getComponent('minecraft:equippable');
@@ -497,13 +497,13 @@ function awakenPiece(p,index){
  }
  setProp(p,'lastAwakeningMoon',moon.moonId);
  awakeningPurpleBeam(p);
- tell(p,`§e⚡ Spark ${name} awakened! 5 Spark Tokens consumed. You must wait until the next Spark Moon to awaken another piece.`);
+ tell(p,`§e⚡ Spark ${name} awakened! 5 Spark Tokens consumed.`);
  if(name==='Chestplate')tell(p,'§6⚡ SPARK MODE UNLOCKED: a hit that would kill you instead makes you IMMORTAL for 10 seconds (Speed IV, Strength II, lightning on everyone nearby). Recharge it at the Spark Shrine afterwards.');
 }
 function awakenSword(p){
  const moon=sparkMoonStatus();
  if(!moon.active){tell(p,`§cSword awakening requires a Spark Moon. Next moon in ${formatMoonTime(moon.remainingMs)}.`);return;}
- if(Number(prop(p,'lastAwakeningMoon',-1))===moon.moonId){tell(p,'§cOnly one awakening is allowed per Spark Moon.');return;}
+ // V239: no limit - every piece can be awakened.
  const eq=p.getComponent('minecraft:equippable');
  const sword=eq?.getEquipment(EquipmentSlot.Mainhand);
  if(sword?.typeId===I.awakenedSword){tell(p,'Your sword is already awakened.');return;}
@@ -526,7 +526,7 @@ function awakenSword(p){
 function awakenMace(p){
  const moon=sparkMoonStatus();
  if(!moon.active){tell(p,'Spark Mace awakening requires an active Spark Moon.');return;}
- if(Number(prop(p,'lastAwakeningMoon',-1))===moon.moonId){tell(p,'Only one piece may be awakened each Spark Moon.');return;}
+ // V239: no limit - every piece can be awakened.
  if(!isSparkMace(p)){tell(p,'Hold your Spark Mace in your main hand.');return;}
  const eq=p.getComponent('minecraft:equippable');
  const mace=eq?.getEquipment(EquipmentSlot.Mainhand);
@@ -709,7 +709,7 @@ function altarUI(p){system.run(async()=>{
 
  const chestState=sparkChestStatus(p);
  const form=new ActionFormData().title('Spark Shrine')
- .body(`Awaken ONE piece per player per Spark Moon for 5 Spark Tokens.\nSpark Moon: ${sparkMoonStatus().active ? '§aACTIVE' : '§cINACTIVE'}\n${sparkMoonStatus().active ? 'Ends in' : 'Next in'}: ${formatMoonTime(sparkMoonStatus().remainingMs)}`)
+ .body(`Awaken ANY of your Spark pieces during a Spark Moon - 5 Spark Tokens each, no limit.\nSpark Moon: ${sparkMoonStatus().active ? '§aACTIVE' : '§cINACTIVE'}\n${sparkMoonStatus().active ? 'Ends in' : 'Next in'}: ${formatMoonTime(sparkMoonStatus().remainingMs)}`)
  .button('Craft Spark Mace')
  .button('Awaken Helmet — 5 Tokens').button('Awaken Chestplate — 5 Tokens')
  .button('Awaken Leggings — 5 Tokens').button('Awaken Boots — 5 Tokens').button('Awaken Held Spark Sword — 5 Tokens').button('Awaken Held Spark Mace — 5 Tokens').button('§6⚒ Spark Forge — Upgrade with Sparkite')
@@ -1529,7 +1529,7 @@ initSparkBow({
   take:(p,n)=>take(p,I.tear,n),
   count:p=>count(p,I.tear),
   moon:()=>sparkMoonStatus(),
-  moonUsed:(p,m)=>Number(prop(p,'lastAwakeningMoon',-1))===m.moonId,
+  moonUsed:()=>false,   // V239: no awakening limit
   setMoonUsed:(p,m)=>setProp(p,'lastAwakeningMoon',m.moonId)
 });
 // V236: tell every player where the Spark Colosseum and Spark Shrine are when they join.

@@ -52,7 +52,6 @@ export function awakenSparkBow(p){
  if(awakened(bow)){tell(p,'§eYour Spark Bow is already awakened.');return;}
  const moon=host.moon();
  if(!moon.active){tell(p,'§cBow awakening requires an active Spark Moon.');return;}
- if(host.moonUsed(p,moon)){tell(p,'§cOnly one awakening is allowed per Spark Moon.');return;}
  if(host.count(p)<5){tell(p,'§cYou need 5 Spark Tokens to awaken the bow.');return;}
  if(!host.take(p,5))return;
  safe(()=>bow.setDynamicProperty('sparkmod:awakened',true));

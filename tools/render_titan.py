@@ -7,7 +7,7 @@ import json, math, sys
 import numpy as np
 from PIL import Image
 
-GEO = 'SparkMod_V238_Resources/models/entity/bolt_titan.geo.json'
+GEO = 'SparkMod_V239_Resources/models/entity/bolt_titan.geo.json'
 
 
 def faces_of(cube):
