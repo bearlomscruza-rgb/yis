@@ -30,15 +30,6 @@
           "chest_core": false
         },
         {
-          "heart": false
-        },
-        {
-          "right_ribcage": false
-        },
-        {
-          "left_ribcage": false
-        },
-        {
           "rocks_a_body": "query.property('sparkmod:rocks')<1"
         },
         {
@@ -67,6 +58,21 @@
         },
         {
           "rocks_c_head": "query.property('sparkmod:rocks')<3"
+        },
+        {
+          "heart": false
+        },
+        {
+          "god_halo": false
+        },
+        {
+          "god_crest": false
+        },
+        {
+          "god_sword": false
+        },
+        {
+          "god_spear": false
         }
       ]
     },
@@ -109,15 +115,6 @@
           "chest_core": "query.property('sparkmod:godmode')==0"
         },
         {
-          "heart": "query.property('sparkmod:godmode')>0"
-        },
-        {
-          "right_ribcage": "query.property('sparkmod:godmode')>0"
-        },
-        {
-          "left_ribcage": "query.property('sparkmod:godmode')>0"
-        },
-        {
           "rocks_a_body": false
         },
         {
@@ -146,6 +143,27 @@
         },
         {
           "rocks_c_head": false
+        },
+        {
+          "heart": "query.property('sparkmod:godmode')>0"
+        },
+        {
+          "god_halo": "query.property('sparkmod:godmode')>0"
+        },
+        {
+          "god_crest": "query.property('sparkmod:godmode')>0"
+        },
+        {
+          "god_sword": "query.property('sparkmod:godmode')>0"
+        },
+        {
+          "god_spear": "query.property('sparkmod:godmode')>0"
+        },
+        {
+          "right_tendril": "query.property('sparkmod:godmode')==0"
+        },
+        {
+          "left_tendril": "query.property('sparkmod:godmode')==0"
         }
       ]
     },
@@ -187,15 +205,6 @@
           "chest_core": true
         },
         {
-          "heart": false
-        },
-        {
-          "right_ribcage": false
-        },
-        {
-          "left_ribcage": false
-        },
-        {
           "rocks_a_body": "query.property('sparkmod:rocks')<1"
         },
         {
@@ -224,6 +233,21 @@
         },
         {
           "rocks_c_head": "query.property('sparkmod:rocks')<3"
+        },
+        {
+          "heart": false
+        },
+        {
+          "god_halo": false
+        },
+        {
+          "god_crest": false
+        },
+        {
+          "god_sword": false
+        },
+        {
+          "god_spear": false
         }
       ]
     }

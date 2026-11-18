@@ -1,13 +1,13 @@
 """Builds the V222 Bolt Titan: a Warden-style body at 1.3x Warden size.
 
 python3 tools/build_titan.py
-Writes (into SparkMod_V222_Resources):
+Writes (into SparkMod_V223_Resources):
   models/entity/bolt_titan.geo.json                 the model
   textures/entity/bolt_titan.png                    phase 1 (stone, moss, robe, gold, skulls)
   textures/entity/bolt_titan_low1/low2/low.png      phase 2 (amber, cracks spread from the chest)
   textures/entity/bolt_titan_p3_1/_2/_3.png         phase 3 (yellow; black fragments as HP drops)
   textures/entity/bolt_titan_god.png                Spark God (black with yellow lightning veins)
-and SparkMod_V222_Behavior/scripts/titan_model.js  (anchor points the scripts use for effects).
+and SparkMod_V223_Behavior/scripts/titan_model.js  (anchor points the scripts use for effects).
 
 Every face gets its own rectangle in the texture, and every texel is painted from its real
 3D position on the body, so patterns (cracks, veins, moss) run continuously across faces.
@@ -16,8 +16,8 @@ import json, math
 import numpy as np
 from PIL import Image
 
-RP = 'SparkMod_V222_Resources/'
-BP = 'SparkMod_V222_Behavior/'
+RP = 'SparkMod_V223_Resources/'
+BP = 'SparkMod_V223_Behavior/'
 TEX_W, TEX_H = 256, 256
 
 # ----------------------------------------------------------------------------- model
@@ -53,8 +53,21 @@ HEAD = [C((-10.5, 44, -6.5), (21, 20, 13), 'skin'),
 EYES = [C((-7.6, 52, -7.1), (3.6, 2.4, .7), 'eye', density=5)]
 TENDRIL_R = [C((-24, 51, 0), (13.5, 16, 0), 'tendril')]
 CORE = [C((-2.5, 33.5, -8.5), (5, 5, 1.2), 'core', density=4), C((-1.5, 34.5, -9.0), (3, 3, .6), 'core', density=4)]
-HEART = [C((-3.5, 30.5, -8.7), (7, 7, 1.3), 'heart', density=3)]
-RIB_R = [C((-11.2, 27.2, -9.2), (11, 14, 0), 'rib', density=2)]
+# Spark God parts (only visible in god mode): a big round glowing chest core, a halo behind the
+# head, a crest, a curved sword in the right hand and a long spear in the left. Built from small
+# cubes like a voxel statue.
+HEART = [C((-6.5, 28.5, -9.4), (13, 13, 1.6), 'disc', density=2)]
+HALO = [C((math.cos(a) * 17 - 1.3, 57 + math.sin(a) * 17 - 1.3, 8), (2.6, 2.6, 1.2), 'halo')
+        for a in [i * 2 * math.pi / 30 for i in range(30)]]
+CREST = [C((-0.9, 64.6, -1), (1.8, 7.5, 1.8), 'crest'), C((-3, 68.6, -1), (6, 1.6, 1.8), 'crest')]
+SWORD = ([C((-18.3, 2.2, -8.4), (5.2, 4.6, 1.4), 'crest'),                      # guard
+          C((-16.6, 3.6, -11.4), (1.8, 1.8, 3), 'crest')]                       # pommel-side grip
+         + [C((-16.3, 3.2 + (i / 17) ** 2 * 13, -10 - i * 2.4), (1.2, 3.4 - max(0, i - 14) * .8, 2.6), 'blade')
+            for i in range(18)])
+SPEAR = ([C((15.8 + .38 * (y - 4.5) - 1.1, y, -7.6 - .08 * (y - 4.5)), (2.2, 2.2, 2.2), 'staff')
+          for y in [0 + k * 2 for k in range(34)]]
+         + [C((15.8 + .38 * (y - 4.5) - w / 2, y, -7.6 - .08 * (y - 4.5) - .3), (w, 2.2, 2.8), 'blade')
+            for y, w in ((68, 5), (70, 4.2), (72, 3.2), (74, 2.2), (76, 1.2))])
 ROCKS = {  # group: [(bone, cube)]
     'a': [('body', C((-8, 21, 6.6), (5, 5, 4), 'rock')), ('right_arm', C((-23.2, 12, -2), (4, 5, 4.5), 'rock')),
           ('right_leg', C((-11.5, 8, 2), (4, 4.5, 4), 'rock'))],
@@ -72,9 +85,11 @@ BONES = [  # name, parent, pivot, cubes
     ('right_tendril', 'head', (-10.5, 59, 0), TENDRIL_R),
     ('left_tendril', 'head', (10.5, 59, 0), [mirror(c) for c in TENDRIL_R]),
     ('chest_core', 'body', (0, 36, -8), CORE),
-    ('heart', 'body', (0, 34, -8.0), HEART),
-    ('right_ribcage', 'body', (-6, 34, -9.2), RIB_R),
-    ('left_ribcage', 'body', (6, 34, -9.2), [mirror(c) for c in RIB_R]),
+    ('heart', 'body', (0, 35, -8.6), HEART),
+    ('god_halo', 'head', (0, 57, 8.6), HALO),
+    ('god_crest', 'head', (0, 64.6, 0), CREST),
+    ('god_sword', 'right_arm', (-16, 4, -8), SWORD),
+    ('god_spear', 'left_arm', (16, 4, -8), SPEAR),
     ('right_arm', 'body', (-16, 42, 0), R_ARM),
     ('left_arm', 'body', (16, 42, 0), [mirror(c) for c in R_ARM]),
     ('right_leg', 'root', (-5.5, 17, 0), R_LEG),
@@ -259,6 +274,10 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
         col[seam] = r[0]
         return col, seam
 
+    if god:
+        return paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname)
+    if mat in ('halo', 'crest', 'blade', 'staff', 'disc'):
+        return np.zeros((h, w, 3)) + GOLD[2], None
     if mat in ('skin', 'skin_dark', 'rock', 'tendril'):
         if god:
             col = ramp(np.clip(.2 + n1 * .5 + n2 * .2 - rim, 0, .999), VOID)
@@ -366,6 +385,59 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
     return col, None
 
 
+BRONZE = hexramp('#24150a', '#33200d', '#452b11', '#593816', '#6e461b', '#855521', '#9c6528')
+GLOWY = np.array([1, .86, .3])
+WHITE = np.array([1, 1, .85])
+
+
+def paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname):
+    """Spark God: bronze-gold armour outlined in glowing light, like a lit-up statue."""
+    edge_px = np.minimum.reduce([s * w, (1 - s) * w, t * h, (1 - t) * h])  # texels to the nearest face edge
+    outline = edge_px < 1.0
+    if mat in ('halo', 'crest', 'blade', 'staff'):
+        col = ramp(np.clip(.4 + n2 * .5, 0, .999), hexramp('#f0a01c', '#ffb52e', '#ffc640', '#ffd455', '#ffe070'))
+        if min(w, h) >= 4:
+            col[outline] = np.array([1, .93, .6])
+        return col, None
+    if mat == 'disc':  # big round glowing chest core
+        r = np.hypot(s - .5, t - .5)
+        col = np.zeros((h, w, 3))
+        for rad, c in ((.5, [.95, .62, .1]), (.44, [1, .8, .22]), (.36, [1, .9, .45]), (.25, [1, .96, .7]), (.12, [1, 1, .95])):
+            col[r < rad] = c
+        col[(np.abs(r - .4) < .025)] = [1, .7, .15]
+        if fname in ('north', 'south'):
+            return col, (r < .5).astype(float)
+        return col, None
+    if mat in ('eye',):
+        col = np.zeros((h, w, 3)) + WHITE
+        return col, None
+    if mat == 'mouth':
+        return np.zeros((h, w, 3)) + GLOWY, None
+    if mat == 'core':
+        return np.zeros((h, w, 3)) + WHITE, None
+    # armour body
+    r = BRONZE
+    v = .3 + n1 * .45 + n2 * .15 + (P[..., 1] / 64) * .15 - rim * .5
+    col = ramp(np.clip(v, 0, .999), r)
+    # plate seams glow
+    course = np.floor(P[..., 1] / 8.0)
+    seam = ((P[..., 1] % 8.0) < .9) & (abs(N[1]) < .5) & (mat in ('skin', 'skin_dark'))
+    col[seam] = GLOWY * .9
+    # glowing rings around the arms (like the bands in the statue)
+    if mat == 'skin' and abs(P[..., 0]).mean() > 10 and P[..., 1].mean() < 42:
+        band = (np.abs(((P[..., 1] - 8) % 9) - 4.5) > 3.9) & (abs(N[1]) < .5)
+        col[band] = GLOWY
+    # V of light running down from the chest core on the torso front
+    if fname == 'north' and P[..., 2].mean() < -6.4 and abs(P[..., 0]).mean() < 13:
+        y = P[..., 1]
+        x = np.abs(P[..., 0])
+        v1 = (np.abs(x - (y - 17) * .55) < .9) & (y > 17) & (y < 30)
+        v2 = (np.abs(x - (y - 17) * .55 - 3.5) < .7) & (y > 17) & (y < 30)
+        col[v1 | v2] = GLOWY
+    col[outline] = GLOWY       # every plate edge outlined in light
+    return col, (tendril_alpha(P) if mat == 'tendril' else None)
+
+
 def tendril_alpha(P):
     """Curved, scalloped lobe sweeping up and out from the side of the head."""
     u = np.abs(P[..., 0]) - 10.5                  # 0 at the head, 13.5 at the tip
@@ -414,7 +486,8 @@ def write_anchors():
     js = ('// Generated by tools/build_titan.py - effect anchor points on the V222 Titan model.\n'
           '// Each point is [forward, right, up] in blocks at scale 1.\n'
           f'export const EYES={json.dumps(eyes)};\nexport const CHEST={json.dumps(chest)};\n'
-          f'export const ROCKS={json.dumps(rocks)};\nexport const HEIGHT={round(68 / 16, 2)};\n')
+          f'export const ROCKS={json.dumps(rocks)};\nexport const HEIGHT={round(68 / 16, 2)};\n'
+          f'export const HALO={json.dumps({"center": to_frame((0, 57, 8.6)), "radius": round(17 / 16, 2)})};\n')
     open(BP + 'scripts/titan_model.js', 'w').write(js)
 
 
