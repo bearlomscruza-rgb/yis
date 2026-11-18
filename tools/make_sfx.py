@@ -1,13 +1,13 @@
 """Synthesizes SparkMod's custom Bolt Titan sound effects.
 
 Run from the repo root:  python3 tools/make_sfx.py
-Writes .ogg files into SparkMod_V225_Resources/sounds/sparkmod/ (needs numpy + ffmpeg).
+Writes .ogg files into SparkMod_V226_Resources/sounds/sparkmod/ (needs numpy + ffmpeg).
 """
 import os, subprocess, sys, tempfile, wave
 import numpy as np
 
 SR = 44100
-OUT = sys.argv[1] if len(sys.argv) > 1 else 'SparkMod_V225_Resources/sounds/sparkmod'
+OUT = sys.argv[1] if len(sys.argv) > 1 else 'SparkMod_V226_Resources/sounds/sparkmod'
 
 
 def t(sec):
@@ -330,6 +330,19 @@ def sun_explode(seed):
     return dist(whine + boom + roar + rumble + zaps, 2.6) * env(n, .01, 2.0)
 
 
+
+def heartbeat(seed):
+    """Deep two-beat thump (lub-dub)."""
+    tt = t(1.0)
+    n = len(tt)
+    x = np.zeros(n)
+    for start, amp in ((0.0, 1.0), (0.22, .7)):
+        k = int(SR * start)
+        tb = tt[:n - k]
+        x[k:] += (osc(55 * np.exp(-tb * 9) + 32, 'sin') * np.exp(-tb * 14) * amp)[:n - k]
+    return x * env(n, .002, .3)
+
+
 if __name__ == '__main__':
     for i in range(3):
         write(f'zap{i + 1}', zap(10 + i))
@@ -353,3 +366,4 @@ if __name__ == '__main__':
     write('eclipse', eclipse(160))
     write('godmode', godmode(170))
     write('sun_explode', sun_explode(180))
+    write('heartbeat', heartbeat(190))

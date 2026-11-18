@@ -1,4 +1,4 @@
-"""Builds the Bolt Titan models and skins (V225).
+"""Builds the Bolt Titan models and skins (V226).
 
 python3 tools/build_titan.py
 
@@ -10,18 +10,18 @@ Two models:
 Each face gets its own rectangle in the texture and every texel is painted from its real 3D
 position on the body, so patterns run smoothly and continuously across the whole model.
 
-Writes into SparkMod_V225_Resources:
+Writes into SparkMod_V226_Resources:
   models/entity/bolt_titan.geo.json, models/entity/bolt_titan_god.geo.json
   textures/entity/bolt_titan.png (phase 1), bolt_titan_low1/low2/low.png (phase 2 crack stages),
   bolt_titan_p3_1/_2/_3.png (phase 3: yellow, black fragments), bolt_titan_god.png
-and SparkMod_V225_Behavior/scripts/titan_model.js (anchor points used by the effects).
+and SparkMod_V226_Behavior/scripts/titan_model.js (anchor points used by the effects).
 """
 import json, math
 import numpy as np
 from PIL import Image
 
-RP = 'SparkMod_V225_Resources/'
-BP = 'SparkMod_V225_Behavior/'
+RP = 'SparkMod_V226_Resources/'
+BP = 'SparkMod_V226_Behavior/'
 
 
 def C(o, s, mat, **kw):
@@ -67,6 +67,51 @@ def load_classic():
 
 CLASSIC = dict(name='classic', bones=load_classic(), tex=(256, 256), chest=np.array([2.7, 42, -8.6]),
                geo_id='geometry.sparkmod.bolt_titan', file='bolt_titan.geo.json')
+
+# ============================================================================ magma golem model
+# Phases 1 and 3: a hunched magma golem - dark volcanic rock split by glowing lava cracks, huge
+# shoulders with flames burning on top, a small head sunk between them, carved copper bands on
+# the forearms and giant fists faced with copper bricks.
+def flame(x, y, z, sx, sy):
+    """Two crossed planes with a cut-out flame texture."""
+    return [C((x - sx / 2, y, z), (sx, sy, 0), 'flame', density=2), C((x, y, z - sx / 2), (0, sy, sx), 'flame', density=2)]
+
+
+M_LEG = [C((-10, 2, -4.5), (8, 13, 9), 'magma'), C((-10.5, 0, -6.5), (9, 3.5, 11), 'magma'),
+         C((-10.3, 0, -7.6), (2.4, 2.2, 1.6), 'magma'), C((-7.3, 0, -7.6), (2.4, 2.2, 1.6), 'magma'),
+         C((-4.3, 0, -7.6), (2.4, 2.2, 1.6), 'magma')]
+M_ARM = [C((-27, 21, -6.5), (11, 15, 13), 'magma'),                    # upper arm
+         C((-28, 14, -7.5), (13, 7, 15), 'copper_carved'),             # carved copper band
+         C((-31, 0, -9.5), (17, 14, 19), 'magma'),                     # fist
+         C((-31.6, 1, -10.4), (17.6, 12, 1.2), 'copper_brick'),        # brick knuckle plate
+         C((-31.8, 1, -9), (1.2, 12, 15), 'copper_brick'),             # brick side plate
+         C((-30, 14, -10), (4, 3, 4), 'magma'), C((-24, 14, -10), (4, 3, 4), 'magma')]   # knuckle spikes
+M_SHOULDER = [C((-26, 33, -9.5), (14, 13, 18), 'magma'),
+              C((-25, 46, -6), (5, 3.5, 6), 'magma'), C((-19.5, 46, -3), (4, 2.5, 5), 'magma')]   # jagged top
+MAGMA = dict(name='magma', tex=(256, 256), chest=np.array([0, 34, -9]),
+             geo_id='geometry.sparkmod.bolt_titan_magma', file='bolt_titan_magma.geo.json', bones=[
+    ('root', None, (0, 0, 0), []),
+    ('body', 'root', (0, 15, 0), [C((-10, 15, -6), (20, 11, 12), 'magma'),          # waist
+                                  C((-13, 25, -8.5), (26, 17, 17), 'magma'),        # chest
+                                  C((-6, 27, -9.4), (12, 9, 1.2), 'magma'),         # chest plate
+                                  C((-11, 16, -6.8), (22, 3, 13.6), 'copper_brick')]  # brick belt
+     + M_SHOULDER + [mirror(c) for c in M_SHOULDER]),
+    ('head', 'body', (0, 34, -6), [C((-5.5, 31, -12.5), (11, 10, 10), 'magma'),
+                                   C((-6, 39.5, -13), (12, 2, 6), 'magma'),
+                                   C((-3.5, 32.5, -12.9), (7, 1.8, .6), 'lava_mouth', density=3)]),
+    ('sparkmod_glowing_eyes', 'head', (0, 34, -6), [C((-4.4, 36, -12.9), (3, 1.6, .5), 'lava_eye', density=4),
+                                                    C((1.4, 36, -12.9), (3, 1.6, .5), 'lava_eye', density=4)]),
+    ('flames', 'body', (0, 46, 0), flame(-21, 46, -2, 10, 16) + flame(-16, 45.5, 3, 7, 11) +
+                                    flame(21, 46, -2, 10, 16) + flame(16, 45.5, 3, 7, 11)),
+    ('right_arm', 'body', (-19, 38, 0), M_ARM),
+    ('left_arm', 'body', (19, 38, 0), [mirror(c) for c in M_ARM]),
+    ('right_leg', 'root', (-6, 15, 0), M_LEG),
+    ('left_leg', 'root', (6, 15, 0), [mirror(c) for c in M_LEG]),
+    # chunks of crust that crumble away at 60% health
+    ('rocks_a_body', 'body', (0, 15, 0), [C((-9, 30, 8), (6, 6, 3), 'magma'), C((3, 34, 8), (7, 5, 3), 'magma'),
+                                          C((-23, 46, 2), (5, 4, 5), 'magma'), C((18, 46, 2), (5, 4, 5), 'magma')]),
+])
+
 
 # ============================================================================ god model
 # Spark God: a sand-gold block golem carved with spiral engravings - big shoulder blocks, white
@@ -169,10 +214,15 @@ def build_atlas(model):
     model['place'] = place
 
 
+REST = {('magma', 'right_arm'): [-18, 0, 24], ('magma', 'left_arm'): [-18, 0, -24]}
+
+
 def write_geo(model):
     bones = []
     for bname, parent, pivot, cubes in model['bones']:
         b = {'name': bname, 'pivot': [round(v, 3) for v in pivot]}
+        if (model['name'], bname) in REST:
+            b['rotation'] = REST[(model['name'], bname)]
         if parent:
             b['parent'] = parent
         out = []
@@ -292,6 +342,8 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
         col[seam] = r[0]
         return col, seam
 
+    if variant in ('m1', 'm3'):
+        return paint_magma(mat, P, N, s, t, w, h, n1, n2, rim, variant, stage, fname)
     if god:
         return paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname)
     if mat in ('carved', 'carved_face', 'gold_band', 'ornament', 'cloth', 'fringe', 'gem', 'crest', 'wing'):
@@ -319,20 +371,17 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
         mat = '_done'
     if mat == '_done':
         pass
-    elif mat in ('skin', 'skin_dark', 'rock', 'tendril'):
+    elif mat in ('skin', 'skin_dark', 'rock'):
         if god:
             col = ramp(np.clip(.2 + n1 * .5 + n2 * .2 - rim, 0, .999), VOID)
         elif p3:
-            r = YEL if mat in ('skin', 'tendril') else YEL_D
+            r = YEL if mat == 'skin' else YEL_D
             col = ramp(np.clip(.25 + n1 * .5 + n2 * .15 + shade - rim, 0, .999), r)
         else:
-            r = {'skin': STONE, 'skin_dark': STONE_D, 'rock': STONE_D, 'tendril': STONE}[mat]
+            r = {'skin': STONE, 'skin_dark': STONE_D, 'rock': STONE_D}[mat]
             if p2:
-                r = {'skin': AMBER, 'skin_dark': AMBER_D, 'rock': AMBER_D, 'tendril': AMBER}[mat]
+                r = {'skin': AMBER, 'skin_dark': AMBER_D, 'rock': AMBER_D}[mat]
             col, seam = stone(r)
-            if mat == 'tendril':  # vein lines on the tendril plates
-                v = ridge(P, .25, 9, .07)
-                col = np.where(v[..., None] > .5, r[0], col)
             if phase1:
                 m = fbm(P, .22, 5) + np.clip(up, 0, 1) * .35 + np.clip((14 - P[..., 1]) / 30, 0, .4)
                 if mat == 'rock' or mossy:
@@ -384,16 +433,6 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
         col = np.zeros((h, w, 3)) + np.array([.55, .32, .03])
         for rad, c in ((.46, [.95, .62, .07]), (.34, [1, .85, .2]), (.22, [1, .97, .6]), (.12, [1, 1, 1])):
             col[r < rad] = c
-    elif mat == 'heart':  # warden-style glowing soul heart (only shown in god mode)
-        r = np.hypot(s - .5, t - .5)
-        col = np.zeros((h, w, 3)) + np.array([.3, .2, .02])
-        for rad, c in ((.48, [.75, .5, .05]), (.38, [1, .78, .12]), (.26, [1, .93, .45]), (.13, [1, 1, .95])):
-            col[r < rad] = c
-        v = ridge(P, .9, 31, .1)
-        col = np.where((v[..., None] > .6) & (r[..., None] > .26), np.array([.35, .2, .02]), col)
-    elif mat == 'rib':  # pale ribs over a see-through chest (alpha cut-out between ribs)
-        col = ramp(np.clip(.5 + n2 * .3, 0, .999), BONE if not god else hexramp('#3a3226', '#51473a', '#6e6250'))
-        return col, rib_alpha(s, t, cube)
     else:
         col = np.zeros((h, w, 3)) + .5
 
@@ -421,14 +460,61 @@ def paint_face(mat, P, N, s, t, variant, stage, cube, fname):
         v = np.maximum(ridge(P, .075, 71, .05 * dens), ridge(P, .16, 73, .04 * dens) * .9)
         v = np.maximum(v, ridge(P, .3, 77, .03) * .55)
         col = glow_mix(col, np.clip(v * 1.15, 0, 1), color=np.array([1, .85, .15]), core=np.array([1, 1, .8]), halo=.7)
-    if mat == 'tendril':
-        return col, tendril_alpha(P)
     return col, None
 
 
 BRONZE = hexramp('#24150a', '#33200d', '#452b11', '#593816', '#6e461b', '#855521', '#9c6528')
 GLOWY = np.array([1, .86, .3])
 WHITE = np.array([1, 1, .85])
+
+
+ROCK = hexramp('#1e1416', '#2a1b1d', '#372326', '#442b2d', '#523435', '#5f3d3b')
+LAVA = np.array([1, .52, .08])
+LAVA_HOT = np.array([1, .86, .3])
+COPPER = hexramp('#7a3a24', '#9a4c2f', '#b8613d', '#d27a51', '#e69468', '#f2ad83')
+
+
+def paint_magma(mat, P, N, s, t, w, h, n1, n2, rim, variant, stage, fname):
+    """m1 = phase 1 (crust mostly intact), m3 = phase 3 (hotter; more lava as HP drops)."""
+    heat = {('m1', 0): .0, ('m3', 1): .25, ('m3', 2): .5, ('m3', 3): .8}[(variant, stage)]
+    if mat == 'flame':
+        u = s - .5
+        top = .1 + np.abs(u) * 1.4 + vnoise(np.stack([s * 3, t * 0, t * 0], -1), 1.0, 5) * .25
+        shape = (t > top) & (np.abs(u) < .48)
+        col = np.zeros((h, w, 3))
+        g = np.clip((t - top) / .5, 0, 1)
+        col[:] = np.where(g[..., None] > .55, [1, .95, .55], np.where(g[..., None] > .25, [1, .65, .1], [.95, .3, .05]))
+        return col, shape.astype(float)
+    if mat in ('lava_eye', 'lava_mouth'):
+        col = np.zeros((h, w, 3)) + LAVA_HOT
+        if mat == 'lava_mouth':
+            col[(np.floor(s * 7) % 2 == 0) & ((t < .3) | (t > .7))] = ROCK[1]
+        return col, None
+    if mat == 'copper_brick':
+        rows = np.floor(t * h / 3.2)
+        bx = (s * w + (rows % 2) * 2.5) % 5
+        mortar = ((t * h / 3.2) % 1 < .25) | (bx < .8)
+        col = ramp(np.clip(.4 + n2 * .45 + (1 - t) * .15 - rim * .5, 0, .999), COPPER)
+        hot = vnoise(P, .25, 13) > .55 - heat * .3
+        col[mortar] = np.where(hot[mortar, None], LAVA, ROCK[1])
+        return col, None
+    if mat == 'copper_carved':
+        col = ramp(np.clip(.45 + n2 * .35 - rim * .6, 0, .999), COPPER)
+        tx, ty = max(1, round(w / 8)), 1
+        g = spiral((s * tx) % 1, t, turns=max(1, int(min(w / tx, h) / 4.6)))
+        col[np.roll(g, 1, axis=0) & ~g] = COPPER[5]
+        col[g] = ROCK[1]
+        return col, None
+    # volcanic rock with glowing lava cracks
+    col = ramp(np.clip(.25 + n1 * .5 + n2 * .2 - rim * .5, 0, .999), ROCK)
+    crack = np.maximum(ridge(P, .085, 101, .032 + heat * .05), ridge(P, .19, 103, .022 + heat * .035) * .9)
+    pools = np.clip((fbm(P, .14, 107, 2) - (.8 - heat * .3)) * 6, 0, 1)   # molten patches
+    g = np.clip(np.maximum(crack, pools), 0, 1)
+    col = col * (1 - g[..., None] * .7) + LAVA * g[..., None] * .7
+    col = np.where(g[..., None] > .78, LAVA_HOT, np.where(g[..., None] > .5, LAVA, col))
+    edge = np.minimum.reduce([s * w, (1 - s) * w, t * h, (1 - t) * h]) < .9
+    col[edge & (g < .3)] = col[edge & (g < .3)] * .75
+    return col, None
 
 
 SAND = hexramp('#a8772f', '#b9873a', '#c99846', '#d6a752', '#e2b660', '#ecc571', '#f4d486')
@@ -503,23 +589,6 @@ def paint_god(mat, P, N, s, t, w, h, n1, n2, rim, dist_chest, cube, fname):
     return np.zeros((h, w, 3)) + SAND[3], None
 
 
-def tendril_alpha(P):
-    """Curved, scalloped lobe sweeping up and out from the side of the head."""
-    u = np.abs(P[..., 0]) - 10.5                  # 0 at the head, 13.5 at the tip
-    yc = 55 + u * .55
-    th = 4.6 * (1 - u / 14.5) + 1.0 + .6 * np.sin(u * 1.4)
-    return (np.abs(P[..., 1] - yc) < th).astype(float)
-
-
-def rib_alpha(s, t, cube):
-    ss = 1 - s if cube.get('mirrored') else s
-    ribs = ((t * 5.5) % 1 < .42) & (ss > .08)             # thin horizontal ribs
-    spine = ss > .9                                       # sternum along the middle
-    curve = ss < .12 + .25 * np.abs(t - .5)               # outer edge curves in
-    a = (ribs | spine) & ~curve
-    return a.astype(float)
-
-
 def paint(model, variant, stage=0):
     global CHEST
     CHEST = model['chest']
@@ -557,9 +626,15 @@ def write_anchors():
     chest = to_frame(CLASSIC['chest'])
     G = {b[0]: b for b in GOD['bones']}
     geyes = [to_frame(p) for p in centers(G['sparkmod_glowing_eyes'][3])]
+    M = {b[0]: b for b in MAGMA['bones']}
+    rocks[1] = [to_frame(p) for p in centers(M['rocks_a_body'][3])]      # phase 1 crust chunks
+    meyes = [to_frame(p) for p in centers(M['sparkmod_glowing_eyes'][3])]
+    flames = [to_frame(p) for p in ((-21, 52, -2), (21, 52, -2), (-16, 50, 3), (16, 50, 3))]
     js = ('// Generated by tools/build_titan.py - effect anchor points, [forward, right, up] in blocks at scale 1.\n'
           f'export const EYES={json.dumps(eyes)};\nexport const CHEST={json.dumps(chest)};\n'
           f'export const ROCKS={json.dumps(rocks)};\n'
+          f'export const MAGMA_EYES={json.dumps(meyes)};\nexport const MAGMA_CHEST={json.dumps(to_frame(MAGMA["chest"]))};\n'
+          f'export const MAGMA_FLAMES={json.dumps(flames)};\n'
           f'export const GOD_EYES={json.dumps(geyes)};\nexport const GOD_CHEST={json.dumps(to_frame(GOD["chest"]))};\n'
           f'export const WINGS={json.dumps([to_frame(p) for p in centers([c for c in G["god_halo"][3] if c["size"][0] > 2])][::2])};\n')
     open(BP + 'scripts/titan_model.js', 'w').write(js)
@@ -567,15 +642,15 @@ def write_anchors():
 
 if __name__ == '__main__':
     E = RP + 'textures/entity/'
-    for m in (CLASSIC, GOD):
+    for m in (CLASSIC, MAGMA, GOD):
         build_atlas(m)
         write_geo(m)
     write_anchors()
-    paint(CLASSIC, 'p1').save(E + 'bolt_titan.png')
+    paint(MAGMA, 'm1').save(E + 'bolt_titan_magma.png')
     for st, name in ((1, 'low1'), (2, 'low2'), (3, 'low')):
         paint(CLASSIC, 'p2', st).save(E + f'bolt_titan_{name}.png')
     for st in (1, 2, 3):
-        paint(CLASSIC, 'p3', st).save(E + f'bolt_titan_p3_{st}.png')
+        paint(MAGMA, 'm3', st).save(E + f'bolt_titan_magma_p3_{st}.png')
     paint(GOD, 'god', 3).save(E + 'bolt_titan_god.png')
-    for m in (CLASSIC, GOD):
+    for m in (CLASSIC, MAGMA, GOD):
         print(m['name'], 'faces', len(m['place']), 'texels', sum(r[2] * r[3] for r in m['place'].values()))

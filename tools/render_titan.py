@@ -7,7 +7,7 @@ import json, math, sys
 import numpy as np
 from PIL import Image
 
-GEO = 'SparkMod_V225_Resources/models/entity/bolt_titan.geo.json'
+GEO = 'SparkMod_V226_Resources/models/entity/bolt_titan.geo.json'
 
 
 def faces_of(cube):
@@ -57,6 +57,7 @@ def render(tex, yaw_deg, pitch_deg=12, W=360, H=440, scale=6.0, emissive_bones=(
         while bname:
             b = bones[bname]
             r, off = pose.get(bname, ((0, 0, 0), (0, 0, 0)))
+            r = tuple(np.add(r, b.get('rotation', (0, 0, 0))))
             pv = np.array(b.get('pivot', [0, 0, 0]), float)
             p = rot(r) @ (p - pv) + pv + np.array(off, float)
             bname = b.get('parent')
@@ -73,7 +74,7 @@ def render(tex, yaw_deg, pitch_deg=12, W=360, H=440, scale=6.0, emissive_bones=(
         for cube in bone.get('cubes', []):
             uvs = cube['uv']
             for name, (tl, tr, bl, n) in faces_of(cube).items():
-                if pose:
+                if pose or any('rotation' in bb for bb in bones.values()):
                     o = np.array(xform(bone['name'], (0, 0, 0)))
                     tl, tr, bl = xform(bone['name'], tl), xform(bone['name'], tr), xform(bone['name'], bl)
                     nn = np.array(xform(bone['name'], n)) - o
