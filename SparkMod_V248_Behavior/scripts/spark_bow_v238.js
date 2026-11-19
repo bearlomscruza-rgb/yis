@@ -412,21 +412,37 @@ function blastCrater(d,at){
    if(safe(()=>protectedArea({x:x+dx,y,z:z+dz}),false)){F.shock(d,at,CRATER_R,F.C.white,1);return;}
   }
  }
- const fill=(x1,y1,z1,x2,y2,z2)=>safe(()=>d.runCommand(`fill ${x1} ${y1} ${z1} ${x2} ${y2} ${z2} air`));
+ // V248: a ticking area keeps the crater loaded while it is dug.
+ const loaded=(px,py,pz)=>!!safe(()=>d.getBlock({x:px,y:py,z:pz}),undefined);
+ const fill=(x1,y1,z1,x2,y2,z2,blk='air',rep='')=>safe(()=>{d.runCommand(`fill ${x1} ${y1} ${z1} ${x2} ${y2} ${z2} ${blk}${rep?' replace '+rep:''}`);return true;},false);
  const bottom=floor;                                     // V242: all the way down to bedrock level
- // [radius, from, to]: full 50-block-wide walls, then two narrowing steps at the bottom
- const layers=[[CRATER_R,Math.min(y,bottom+6),y+CRATER_ABOVE],[21,bottom+2,Math.min(y,bottom+6)-1],[15,bottom,bottom+1]];
+ const top=Math.min(y+CRATER_ABOVE,d.id==='minecraft:overworld'?319:d.id==='minecraft:nether'?126:255);
+ const area='sparkcrater'+(Date.now()%100000);
+ safe(()=>d.runCommand(`tickingarea add circle ${x} ${y} ${z} 4 ${area}`));
+ system.runTimeout(()=>safe(()=>d.runCommand(`tickingarea remove ${area}`)),1200);
  const jobs=[];
- for(const [r,y1,y2] of layers){
-  if(y2<y1)continue;
+ const slices=(r,y1,y2,blk,rep)=>{
+  if(y2<y1)return;
   for(let dx=-r;dx<=r;dx++){
    const hw=Math.floor(Math.sqrt(r*r-dx*dx));
-   for(let top=y2;top>=y1;top-=200)jobs.push([x+dx,Math.max(y1,top-199),z-hw,x+dx,top,z+hw]);   // keep each fill under the block limit
+   for(let t=y2;t>=y1;t-=200)jobs.push([x+dx,Math.max(y1,t-199),z-hw,x+dx,t,z+hw,blk,rep,0]);   // keep each fill under the block limit
   }
- }
+ };
+ // 1) SEAL: inside a disc 4 blocks wider than the crater, all water, lava and underwater plants become scorched
+ //    stone first. The ring left after digging is a watertight wall, so the ocean can't pour back into the pit.
+ const SEAL=CRATER_R+4;
+ for(const liquid of ['water','flowing_water','lava','flowing_lava','seagrass','kelp','bubble_column'])slices(SEAL,bottom,top,'blackstone',liquid);
+ // 2) DIG: [radius, from, to]: full 50-block-wide round walls, then two narrowing steps at the bottom.
+ const layers=[[CRATER_R,Math.min(y,bottom+6),top],[21,bottom+2,Math.min(y,bottom+6)-1],[15,bottom,bottom+1]];
+ for(const [r,y1,y2] of layers)slices(r,y1,y2,'air','');
+ // Start only once every corner of the crater is loaded (checked once a second, up to 30 s), so no slice is
+ // skipped; then seal first and dig second, in order.
+ const ready=()=>[[0,0],[SEAL,0],[-SEAL,0],[0,SEAL],[0,-SEAL]].every(([ox,oz])=>loaded(x+ox,bottom,z+oz)&&loaded(x+ox,top,z+oz));
  let i=0;
- const step=()=>{for(let n=0;n<8&&i<jobs.length;n++,i++)fill(...jobs[i]);if(i<jobs.length)system.runTimeout(step,1);};
- step();
+ const step=()=>{for(let n=0;n<16&&i<jobs.length;n++,i++)fill(...jobs[i].slice(0,8));if(i<jobs.length)system.runTimeout(step,1);};
+ let tries=0;
+ const begin=()=>{if(ready()||++tries>=30)step();else system.runTimeout(begin,20);};
+ system.runTimeout(begin,2);
  F.debris(d,at,12,160);F.smoke(d,{x:at.x,y:at.y+2,z:at.z},30,8,F.C.dust,.85);
  for(let k=0;k<4;k++)system.runTimeout(()=>F.shock(d,at,CRATER_R+k*4,k%2?F.C.white:F.C.gold,1.2),k*3);
 }
