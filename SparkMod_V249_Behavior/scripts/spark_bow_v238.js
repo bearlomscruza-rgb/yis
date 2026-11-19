@@ -9,7 +9,7 @@ import {inside as protectedArea} from './structure_protection.js';
 //    rolls in, lightning strikes in a circle around you and glowing runes cover the ground.
 //    The ritual costs 5 hearts, locked away for 30 seconds.
 //  - Release to fire a colossal beam (3x a beacon beam) at the creature/player you're aiming at.
-//    It deals 10 hearts straight through Protection IV and blasts a crater down to bedrock.
+//    It deals 8 hearts to players (no matter what), 500 hearts to mobs, and blasts a crater down to bedrock.
 //    A survivor can't move for 5 seconds and has Weakness III for 10 minutes.
 //  - Then the bow is SPENT: reactivate it at the Spark Shrine (10 Spark Tokens) and wait out the
 //    10-minute cooldown before using it again.
@@ -222,7 +222,7 @@ function fireJudgment(p){
  strike(p,d,eye,target,impact);
  safe(()=>p.onScreenDisplay.setActionBar('§6⚡ Storm Judgment fired! §7Reactivate the bow at the Spark Shrine (10 tokens) - 10 min cooldown.'));
 }
-// The beam, giant lightning, 10 hearts through Protection IV, freeze + Weakness III, crater.
+// The beam, giant lightning, 8 hearts to players / 500 to mobs, freeze + Weakness III, crater.
 function ringAround(d,c,u,r,n,color,size=.45,spin=0){
  // a ring of light perpendicular to direction u
  const a=Math.abs(u.y)<.9?{x:0,y:1,z:0}:{x:1,y:0,z:0};
@@ -242,14 +242,14 @@ function strike(p,d,eye,target,impact){
  // V246: the beam TRAVELS (twice as fast as an arrow) wrapped in spinning rings of light.
  const travel=Math.max(1,Math.ceil(len/BEAM_SPEED));
  const drawBeam=(upto,k)=>{
-  for(let s=1;s<=upto;s+=.9){const q={x:eye.x+u.x*s,y:eye.y+u.y*s,z:eye.z+u.z*s};F.orb(d,q,3.2,F.C.gold,.25,.85);F.orb(d,q,1.6,F.C.white,.25,1);}
-  for(let s=3;s<=upto;s+=5)ringAround(d,{x:eye.x+u.x*s,y:eye.y+u.y*s,z:eye.z+u.z*s},u,2.4,12,(s/5)%2<1?F.C.white:F.C.gold,.5,k*.35+s*.2);
+  for(let s=1;s<=upto;s+=.9){const q={x:eye.x+u.x*s,y:eye.y+u.y*s,z:eye.z+u.z*s};F.orb(d,q,5.5,F.C.gold,.25,.85);F.orb(d,q,2.8,F.C.white,.25,1);}
+  for(let s=3;s<=upto;s+=5)ringAround(d,{x:eye.x+u.x*s,y:eye.y+u.y*s,z:eye.z+u.z*s},u,4.8,20,(s/5)%2<1?F.C.white:F.C.gold,.85,k*.35+s*.2);
  };
  for(let t=0;t<=travel;t++)system.runTimeout(()=>{
   const upto=Math.min(len,(t+1)*BEAM_SPEED);
   drawBeam(upto,t);
   const head={x:eye.x+u.x*upto,y:eye.y+u.y*upto,z:eye.z+u.z*upto};
-  F.orb(d,head,5,F.C.white,.2);F.sparks(d,head,10,6,F.C.gold);
+  F.orb(d,head,8,F.C.white,.2);F.sparks(d,head,16,9,F.C.gold);
  },t);
  for(let k=1;k<=8;k++)system.runTimeout(()=>{drawBeam(len,travel+k);F.arc(d,eye,aim,{color:F.C.white,size:.5,jag:1.2,branches:3,max:200});},travel+k*2);
  system.runTimeout(()=>impactAt(p,d,eye,target,impact,aim),travel+1);
@@ -263,14 +263,17 @@ function impactAt(p,d,eye,target,impact,aim){
  for(let k=0;k<4;k++)system.runTimeout(()=>{F.shock(d,impact,6+k*5,k%2?F.C.white:F.C.gold,1);F.pulse(d,aim,8+k*6,F.C.gold,.7);},k*3);
  F.debris(d,impact,4,80);F.smoke(d,aim,14,2,F.C.dust,.8);F.sparks(d,aim,90,14,F.C.gold);
  F.shake(d,aim,64,2.5,1.4);F.shake(d,eye,8,1.2,.6);
- // 10 hearts straight through Protection IV.
+ // V249: players lose exactly 8 hearts no matter their armour, enchantments or effects; every other mob takes 500 hearts.
  if(target&&safe(()=>target.isValid,false)){
   const h=safe(()=>target.getComponent('minecraft:health'),null);
   if(h){
-   if(h.currentValue>20){
-    safe(()=>h.setCurrentValue(h.currentValue-20));
-    safe(()=>target.applyDamage(.5,{cause:'lightning',damagingEntity:p}));
-   }else safe(()=>target.applyDamage(9999,{cause:'override',damagingEntity:p}));
+   if(target.typeId==='minecraft:player'){
+    const before=h.currentValue;
+    if(before>16){
+     safe(()=>target.applyDamage(1,{cause:'lightning',damagingEntity:p}));   // hurt flash + knock
+     safe(()=>h.setCurrentValue(before-16));
+    }else safe(()=>target.applyDamage(9999,{cause:'override',damagingEntity:p}));
+   }else safe(()=>target.applyDamage(1000,{cause:'override',damagingEntity:p}));
   }
   system.runTimeout(()=>{
    if(!safe(()=>target.isValid,false)||(safe(()=>target.getComponent('minecraft:health')?.currentValue,0)||0)<=0)return;
@@ -292,12 +295,15 @@ let beamsCleaned=false;
 system.runInterval(()=>{if(beamsCleaned)return;beamsCleaned=true;
  for(const n of ['overworld','nether','the_end'])for(const e of safe(()=>world.getDimension(n).getEntities({type:'sparkmod:sky_beam'}),[]))safe(()=>e.remove());},100);
 function skyBeam(d,at){
- const floor=d.id==='minecraft:overworld'?-60:d.id==='minecraft:nether'?4:0;
- const beam=safe(()=>d.spawnEntity('sparkmod:sky_beam',{x:at.x,y:floor,z:at.z}),null);
- for(let k=0;k<20;k++)system.runTimeout(()=>{       // golden rings drifting up the beam
-  ringAround(d,{x:at.x,y:at.y+8+((k*7)%60),z:at.z},{x:0,y:1,z:0},12,28,F.C.gold,1.1,k*.3);
-  F.sparks(d,{x:at.x+(Math.random()-.5)*16,y:at.y+1,z:at.z+(Math.random()-.5)*16},14,6,F.C.gold);
- },k*20);
+ // V249: the beam is anchored AT the impact (it reaches 110 blocks down into the crater and 300 up), so it stays
+ // within the range where the game draws entities. Before, it stood at bedrock and players far above it never saw it.
+ const beam=safe(()=>d.spawnEntity('sparkmod:sky_beam',{x:at.x,y:at.y,z:at.z}),null);
+ for(let k=0;k<40;k++)system.runTimeout(()=>{       // big golden rings drifting up the beam + a glowing particle pillar
+  ringAround(d,{x:at.x,y:at.y+6+((k*9)%90),z:at.z},{x:0,y:1,z:0},24,40,k%2?F.C.white:F.C.gold,1.6,k*.3);
+  ringAround(d,{x:at.x,y:at.y+12+((k*13)%120),z:at.z},{x:0,y:1,z:0},18,32,F.C.gold,1.3,-k*.4);
+  for(let h=0;h<=140;h+=4)F.orb(d,{x:at.x,y:at.y+h,z:at.z},9,F.C.gold,.6,.9);
+  F.sparks(d,{x:at.x+(Math.random()-.5)*30,y:at.y+1,z:at.z+(Math.random()-.5)*30},20,8,F.C.gold);
+ },k*10);
  if(!beam)return;
  for(let k=0;k<=20;k++)system.runTimeout(()=>safe(()=>beam.setProperty('sparkmod:fade',Math.max(0,1-k/20))),400+k*2);
  system.runTimeout(()=>safe(()=>beam.remove()),446);

@@ -6,11 +6,11 @@
     "identifier": "geometry.sparkmod.sky_beam",
     "texture_width": 32,
     "texture_height": 64,
-    "visible_bounds_width": 40,
+    "visible_bounds_width": 60,
     "visible_bounds_height": 420,
     "visible_bounds_offset": [
      0,
-     200,
+     95,
      0
     ]
    },
@@ -19,20 +19,20 @@
      "name": "beam",
      "pivot": [
       0,
-      6400,
+      4800,
       0
      ],
      "cubes": [
       {
        "origin": [
-        -160,
-        0,
-        -160
+        -240.0,
+        -1760,
+        -240.0
        ],
        "size": [
-        320,
-        6400,
-        320
+        480,
+        6560,
+        480
        ],
        "uv": {
         "north": {
@@ -79,14 +79,14 @@
       },
       {
        "origin": [
-        -208,
-        0,
-        -208
+        -336.0,
+        -1760,
+        -336.0
        ],
        "size": [
-        416,
-        6400,
-        416
+        672,
+        6560,
+        672
        ],
        "uv": {
         "north": {

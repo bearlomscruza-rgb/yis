@@ -186,7 +186,7 @@ function rewardName(value) {
   const k=rollKind(r);
   if(k.kind==='unique'){
     const claimed=String(prop(world,'uniqueSparkRolls','')).split('|').includes(k.id);
-    return claimed?'§7'+prettyId(k.id).toUpperCase()+' §8(ALREADY CLAIMED) §7- LOOT':'§6'+prettyId(k.id).toUpperCase();
+    return claimed?'§7'+prettyId(k.id).toUpperCase()+' §8(ALREADY OWNED) §6- RANDOM SPARK ARMOUR':'§6'+prettyId(k.id).toUpperCase();
   }
   return {villager:'§6GOD VILLAGER',apple:'§dENCHANTED GOD APPLE',ore:'§eRANDOM ORE',cloud:'§fCLOUD LOOT'}[k.kind];
 }
@@ -202,7 +202,7 @@ function playGachaCloud(p, rolls) {
   for(const prize of prizes){
    const k=rollKind(prize.r);
    const claimed=String(prop(world,'uniqueSparkRolls','')).split('|');
-   if(k.kind==='unique'&&!claimed.includes(k.id)){pity=0;continue;}
+   if(k.kind==='unique'&&(!claimed.includes(k.id)||GOD_ARMOR_IDS.some(id=>!claimed.includes(id)))){pity=0;continue;}   // V249: an owned piece turns into armour
    pity++;
    const open=UNIQUE_ROLLS.find(id=>!claimed.includes(id));
    if(pity>=PITY_LIMIT&&open){prize.r=rangeFor(open);prize.moon=false;pity=0;tell(p,`§6⚡ PITY! ${PITY_LIMIT} Spark Tokens without Spark gear - this roll is guaranteed unique Spark equipment!`);}
@@ -249,7 +249,7 @@ async function openSparkRollMenu(p, attempt=0){
   if(!valid(p))return;
   const form=new ActionFormData()
     .title('§e⚡ ROLL A SPARK')
-    .body('§6☁ LIGHTNING CLOUD ☁\n§eSpend 1 Spark Token to roll for a reward!\n§7Pity: §f'+Number(prop(p,'sparkPity',0))+'/'+PITY_LIMIT+' §7(guaranteed unique Spark gear at '+PITY_LIMIT+')'+'\n§6Odds: §eeach God Armour piece 17.5%, Spark Mace 15%, Spark Sword 15%\n§7Already-claimed item = loot: ore 50%, God Apple 30%, cloud 19%, God Villager 1%')
+    .body('§6☁ LIGHTNING CLOUD ☁\n§eSpend 1 Spark Token to roll for a reward!\n§7Pity: §f'+Number(prop(p,'sparkPity',0))+'/'+PITY_LIMIT+' §7(guaranteed unique Spark gear at '+PITY_LIMIT+')'+'\n§6Odds: §eeach God Armour piece 17.5%, Spark Mace 15%, Spark Sword 15%\n§7Already-owned item = a random unowned Spark armour piece\n§7(all armour owned = loot: ore 50%, God Apple 30%, cloud 19%, God Villager 1%)')
     .button('§e⚡ ROLL A SPARK — 1 Token','textures/ui/spark_storm_cloud')
     .button('§c✕ EXIT');
   try{
@@ -306,17 +306,16 @@ function claimDuplicateArmorReward(){
 function giveUniqueRoll(p, requestedItem=null){
   const id=requestedItem===null?claimUniqueRoll():claimSpecificUniqueRoll(requestedItem);
   if(!id){
-    // V237: the item already exists in this world - you get loot instead.
-    tell(p,'§7That Spark item already exists in this world, so you get loot instead.');
-    lootReward(p,lootKind());
-    return;
+    // V249: the piece you landed on is already owned by someone, so you get a random Spark armour piece nobody has
+    // yet. Only when all four armour pieces are taken do you get loot instead.
     const upgrade=claimDuplicateArmorReward();
     if(upgrade){
       give(p,upgrade);
       if(GOD_ARMOR_IDS.includes(upgrade))issueGodArmor(p,upgrade);
-      tell(p,'§6DUPLICATE ROLL UPGRADE! Guaranteed unclaimed Spark '+upgrade.replace('sparkmod:god_','').replaceAll('_',' ')+' §7(World exclusive)');
+      tell(p,'§6That Spark item is already owned - you get a random Spark armour piece instead: §eSpark '+upgrade.replace('sparkmod:god_','').replaceAll('_',' ')+' §7(World exclusive)');
       return;
     }
+    tell(p,'§7Every Spark armour piece is already owned, so you get loot instead.');
     lootReward(p,lootKind());
     return;
   }

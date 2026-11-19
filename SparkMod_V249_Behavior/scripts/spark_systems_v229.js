@@ -9,8 +9,10 @@ import * as F from './titan_fx_v217.js';
 // SparkMod V229
 //  1. /deck3 - operator settings deck (locator maps, bundles, mace limits).
 //  2. God armour is one-of-a-kind: only the copy issued by a Spark roll may exist. Creative and
-//     command copies are deleted. If the real piece is destroyed or falls into the void, its roll
-//     slot is released so it can be rolled again.
+//     command copies are deleted.
+//     V249: a rolled piece can NEVER be destroyed. If it burns in lava or fire, is blown up, despawns, or falls
+//     into the void, it comes straight back to its owner (or drops back where it last lay safely). Its roll slot
+//     stays taken, even while the owner is offline, so nobody else can ever roll it.
 //  3. Spark Chestplate: a lethal hit triggers SPARK MODE instead of death (lightning on everyone
 //     nearby, immortal 10 s, Speed IV + Strength II). Afterwards the wearer is DRAINED (-2 damage
 //     on every hit, half speed) until recharged at the Spark Shrine for 3 Spark Tokens.
@@ -77,13 +79,6 @@ export function issueGodArmor(player,id){
  r[slot]={serial:null,pending:{player:player.id,until:Date.now()+120000}};
  writeReg(r);
 }
-function release(slot,why){
- const r=readReg();delete r[slot];writeReg(r);
- const base=ARMOR[slot][0];
- safe(()=>world.setDynamicProperty(CLAIMS,claims().filter(x=>x!==base).join('|')));
- for(const [s,info] of serialInfo)if(info.slot===slot)serialInfo.delete(s);
- world.sendMessage(`§6⚡ The God ${NAME[slot]} was ${why}. It can be rolled again!`);
-}
 // Decide what to do with one god armour stack. Returns 'keep' | 'stamped' | 'remove' | null.
 function judge(stack,pass,where){
  const slot=slotOf(stack?.typeId);if(!slot)return null;
@@ -94,7 +89,7 @@ function judge(stack,pass,where){
   pass.seen.add(serial);
   const info=serialInfo.get(serial)||{slot};
   info.lastSeen=Date.now();
-  if(where.player){info.player=where.player;info.dur=durability(stack);}
+  if(where.player){info.player=where.player;info.dur=durability(stack);if(entry.holder!==where.player){entry.holder=where.player;pass.dirty=true;}}
   serialInfo.set(serial,info);
   return 'keep';
  }
@@ -104,7 +99,7 @@ function judge(stack,pass,where){
  if(!pending&&!legacy)return 'remove';
  const s=slot+'_'+Date.now().toString(36)+'_'+(++counter);
  if(!safe(()=>{stack.setDynamicProperty(SERIAL,s);return true;},false))return 'keep';
- r[slot]={serial:s};pass.dirty=true;pass.seen.add(s);
+ r[slot]={serial:s,holder:where.player||entry?.pending?.player||entry?.holder};pass.dirty=true;pass.seen.add(s);
  serialInfo.set(s,{slot,lastSeen:Date.now(),player:where.player,dur:durability(stack)});
  return 'stamped';
 }
@@ -144,19 +139,29 @@ system.runInterval(()=>{
  const online=new Set();
  for(const p of world.getAllPlayers()){online.add(p.id);scanPlayer(p,pass);}
  if(pass.dirty)writeReg(pass.reg);
- // A piece that vanished from an online holder while nearly broken has broken.
- const now=Date.now();
- for(const [serial,info] of serialInfo){
-  if(pass.seen.has(serial)||!info.player||!online.has(info.player))continue;
-  if(now-info.lastSeen<300)continue;
-  if((info.dur??0)>=.85){
-   info.missing=(info.missing||0)+1;
-   const holder=world.getAllPlayers().find(q=>q.id===info.player);
-   if(info.missing>=3&&!itemEntitySerials.has(serial)&&holder&&!stillExists(serial,holder.dimension,holder.location,6))release(info.slot,'broken');
-  }
- }
 },5);
-// Dropped items: void detection + destroyed-on-the-ground detection.
+// V249: bring an indestructible piece back. It gets a fresh serial, so any stray older copy becomes invalid.
+const HAZARD=new Set(['minecraft:lava','minecraft:flowing_lava','minecraft:fire','minecraft:soul_fire','minecraft:cactus','minecraft:magma']);
+function restore(rec,why){
+ const stack=rec.stack,slot=rec.slot;if(!stack||!slot)return;
+ const s=slot+'_'+Date.now().toString(36)+'_'+(++counter);
+ safe(()=>stack.setDynamicProperty(SERIAL,s));
+ const r=readReg();const holderId=r[slot]?.holder;
+ r[slot]={serial:s,holder:holderId};writeReg(r);
+ serialInfo.set(s,{slot,lastSeen:Date.now(),player:holderId});
+ const holder=holderId&&world.getAllPlayers().find(q=>q.id===holderId);
+ if(holder){
+  const left=safe(()=>holder.getComponent('minecraft:inventory').container.addItem(stack),stack);
+  if(left)safe(()=>holder.dimension.spawnItem(left,holder.location));
+  tell(holder,`§6⚡ Your Spark ${NAME[slot]} cannot be destroyed - it ${why} and returned to you.`);
+  F.sparks(holder.dimension,{x:holder.location.x,y:holder.location.y+1,z:holder.location.z},20,2,F.C.gold);
+ }else{
+  const dim=safe(()=>world.getDimension(rec.dim));
+  const at=rec.safe||{x:rec.loc.x,y:Math.max(rec.loc.y,(MIN_Y[rec.dim]??-64)+70),z:rec.loc.z};
+  safe(()=>dim.spawnItem(stack,at));
+ }
+}
+// Dropped items: void rescue + destroyed-on-the-ground rescue.
 const MIN_Y={'minecraft:overworld':-64,'minecraft:nether':0,'minecraft:the_end':0};
 const itemEntities=new Map();      // entity id -> {serial, slot, dim, loc}
 const itemEntitySerials=new Set();
@@ -173,10 +178,14 @@ system.runInterval(()=>{
    if(v==='stamped'){const at={...e.location};safe(()=>e.remove());safe(()=>dim.spawnItem(stack,at));continue;}
    const serial=safe(()=>stack.getDynamicProperty(SERIAL));
    itemEntitySerials.add(serial);
-   if(e.location.y<(MIN_Y[dim.id]??-64)-6){        // falling through the void
-    itemEntities.delete(e.id);safe(()=>e.remove());release(slotOf(stack.typeId),'lost to the void');continue;
+   const prev=itemEntities.get(e.id);
+   const rec={serial,slot:slotOf(stack.typeId),dim:dim.id,loc:{...e.location},stack,safe:prev?.safe};
+   if(e.location.y<(MIN_Y[dim.id]??-64)-6){        // falling through the void: rescue it
+    itemEntities.delete(e.id);safe(()=>e.remove());restore(rec,'fell into the void');continue;
    }
-   itemEntities.set(e.id,{serial,slot:slotOf(stack.typeId),dim:dim.id,loc:{...e.location}});
+   const here=safe(()=>dim.getBlock(e.location)?.typeId,''),below=safe(()=>dim.getBlock({x:e.location.x,y:e.location.y-1,z:e.location.z})?.typeId,'');
+   if(here&&!HAZARD.has(here)&&!HAZARD.has(below))rec.safe={...e.location};
+   itemEntities.set(e.id,rec);
   }
  }
  if(pass.dirty)writeReg(pass.reg);
@@ -204,7 +213,7 @@ world.afterEvents.entityRemove?.subscribe(({removedEntityId})=>{
   const dim=world.getDimension(rec.dim);
   if(!safe(()=>dim.getBlock({x:Math.floor(rec.loc.x),y:Math.floor(rec.loc.y),z:Math.floor(rec.loc.z)}),undefined))return; // chunk unloaded, not destroyed
   if(stillExists(rec.serial,dim,rec.loc))return;
-  release(rec.slot,'destroyed');
+  restore(rec,'was destroyed');
  }),3);
 });
 function hasSerial(container,serial){
@@ -222,6 +231,8 @@ function stillExists(serial,dim,loc,reach=2){
  for(const e of safe(()=>dim.getEntities({location:loc,maxDistance:6}),[])){
   if(e.typeId==='minecraft:item'&&safe(()=>e.getComponent('minecraft:item')?.itemStack?.getDynamicProperty(SERIAL))===serial)return true;
   if(hasSerial(safe(()=>e.getComponent('minecraft:inventory')?.container),serial))return true;
+  const eq=safe(()=>e.getComponent('minecraft:equippable'));
+  if(eq&&EQUIP.some(s=>safe(()=>eq.getEquipment(s)?.getDynamicProperty(SERIAL))===serial))return true;
  }
  for(let x=-reach;x<=reach;x++)for(let y=-3;y<=2;y++)for(let z=-reach;z<=reach;z++){
   const b=safe(()=>dim.getBlock({x:Math.floor(loc.x)+x,y:Math.floor(loc.y)+y,z:Math.floor(loc.z)+z}));

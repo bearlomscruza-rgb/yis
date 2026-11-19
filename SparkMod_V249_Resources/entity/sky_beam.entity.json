@@ -4,7 +4,7 @@
     "description": {
       "identifier": "sparkmod:sky_beam",
       "materials": {
-        "default": "entity_beam_additive"
+        "default": "entity_alphablend"
       },
       "textures": {
         "default": "textures/entity/sm_sky_beam"
