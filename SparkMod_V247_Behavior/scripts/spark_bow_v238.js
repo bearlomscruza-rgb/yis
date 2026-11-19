@@ -45,7 +45,7 @@ system.runInterval(()=>{
  }
 },40);
 const heldBow=p=>{const it=safe(()=>p.getComponent('minecraft:equippable')?.getEquipment(EquipmentSlot.Mainhand));return isSparkBow(it)?it:null;};
-const NOT_TARGET=new Set(['minecraft:item','minecraft:xp_orb','minecraft:lightning_bolt','minecraft:arrow']);
+const NOT_TARGET=new Set(['minecraft:item','minecraft:xp_orb','minecraft:lightning_bolt','minecraft:arrow','sparkmod:sky_beam']);
 const writeHeld=(p,it)=>safe(()=>p.getComponent('minecraft:equippable').setEquipment(EquipmentSlot.Mainhand,it));
 const awakened=it=>safe(()=>it.getDynamicProperty('sparkmod:awakened'),false)===true;
 const spent=it=>safe(()=>it.getDynamicProperty('sparkmod:bow_spent'),false)===true;
@@ -256,9 +256,9 @@ function strike(p,d,eye,target,impact){
 }
 function impactAt(p,d,eye,target,impact,aim){
  F.sfx(d,'sparkmod.titan.sun_explode',aim,6,1.1);
- // V246: the pillar of light from the sky stays for 20 seconds, then fades away over 2 seconds.
- for(let k=0;k<200;k++)system.runTimeout(()=>{for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2,k%2?F.C.white:F.C.gold,.3,.8);if(k%10===0)ringAround(d,{x:aim.x,y:aim.y+20+((k*3)%40),z:aim.z},{x:0,y:1,z:0},4,16,F.C.gold,.7,k*.2);},k*2);
- for(let k=0;k<20;k++)system.runTimeout(()=>{const f=1-(k+1)/21;for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2*(.3+.7*f),F.C.gold,.3,.8*f);},400+k*2);
+ // V247: a solid beacon-style beam of yellow light (~50x a beacon beam) crashes down from the sky onto
+ // the impact and down into the crater, stays for 20 seconds, then fades away over 2 seconds.
+ skyBeam(d,aim);
  F.flash(d,aim,14,F.C.white);F.flash(d,aim,8,F.C.gold);
  for(let k=0;k<4;k++)system.runTimeout(()=>{F.shock(d,impact,6+k*5,k%2?F.C.white:F.C.gold,1);F.pulse(d,aim,8+k*6,F.C.gold,.7);},k*3);
  F.debris(d,impact,4,80);F.smoke(d,aim,14,2,F.C.dust,.8);F.sparks(d,aim,90,14,F.C.gold);
@@ -287,6 +287,21 @@ function impactAt(p,d,eye,target,impact,aim){
  startScorch(d,impact,250);
 }
 
+// Beams left over from a world that was closed mid-beam are removed on load.
+let beamsCleaned=false;
+system.runInterval(()=>{if(beamsCleaned)return;beamsCleaned=true;
+ for(const n of ['overworld','nether','the_end'])for(const e of safe(()=>world.getDimension(n).getEntities({type:'sparkmod:sky_beam'}),[]))safe(()=>e.remove());},100);
+function skyBeam(d,at){
+ const floor=d.id==='minecraft:overworld'?-60:d.id==='minecraft:nether'?4:0;
+ const beam=safe(()=>d.spawnEntity('sparkmod:sky_beam',{x:at.x,y:floor,z:at.z}),null);
+ for(let k=0;k<20;k++)system.runTimeout(()=>{       // golden rings drifting up the beam
+  ringAround(d,{x:at.x,y:at.y+8+((k*7)%60),z:at.z},{x:0,y:1,z:0},12,28,F.C.gold,1.1,k*.3);
+  F.sparks(d,{x:at.x+(Math.random()-.5)*16,y:at.y+1,z:at.z+(Math.random()-.5)*16},14,6,F.C.gold);
+ },k*20);
+ if(!beam)return;
+ for(let k=0;k<=20;k++)system.runTimeout(()=>safe(()=>beam.setProperty('sparkmod:fade',Math.max(0,1-k/20))),400+k*2);
+ system.runTimeout(()=>safe(()=>beam.remove()),446);
+}
 // ---------------------------------------------------------------- V246: scorched land (250 blocks)
 // Grass turns to scorched grass, leaves burn away, logs become scorched logs, plants and bushes
 // burn to dead bushes. Worked through chunk by chunk, nearest the impact first, wherever the land

@@ -1,0 +1,28 @@
+{
+  "format_version": "1.10.0",
+  "minecraft:client_entity": {
+    "description": {
+      "identifier": "sparkmod:sky_beam",
+      "materials": {
+        "default": "entity_beam_additive"
+      },
+      "textures": {
+        "default": "textures/entity/sm_sky_beam"
+      },
+      "geometry": {
+        "default": "geometry.sparkmod.sky_beam"
+      },
+      "animations": {
+        "beam": "animation.sparkmod.sky_beam"
+      },
+      "scripts": {
+        "animate": [
+          "beam"
+        ]
+      },
+      "render_controllers": [
+        "controller.render.sparkmod.sky_beam"
+      ]
+    }
+  }
+}

@@ -275,7 +275,7 @@ function startSparkMode(p){
  // Lightning strikes everyone nearby.
  let n=0;
  for(const e of safe(()=>d.getEntities({location:p.location,maxDistance:24}),[])){
-  if(e.id===p.id||e.typeId==='minecraft:item'||e.typeId==='minecraft:xp_orb'||e.typeId==='minecraft:lightning_bolt')continue;
+  if(e.id===p.id||e.typeId==='minecraft:item'||e.typeId==='minecraft:xp_orb'||e.typeId==='minecraft:lightning_bolt'||e.typeId==='sparkmod:sky_beam')continue;
   if(!safe(()=>e.getComponent('minecraft:health'),null))continue;
   const at={...e.location},delay=2+(n++%10)*2;
   system.runTimeout(()=>{

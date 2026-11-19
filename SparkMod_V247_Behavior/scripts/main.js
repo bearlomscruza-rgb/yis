@@ -1048,7 +1048,7 @@ function sparkStun(target, attacker=null) {
   let from=c,jumped=0;
   for(const e of safe(()=>d.getEntities({location:target.location,maxDistance:8}),[])){
     if(jumped>=3)break;
-    if(e.id===target.id||e.id===attacker?.id||!e.getComponent?.('minecraft:health')||e.typeId==='minecraft:item'||(attacker&&areTeammates(attacker,e)))continue;
+    if(e.id===target.id||e.id===attacker?.id||!e.getComponent?.('minecraft:health')||e.typeId==='minecraft:item'||e.typeId==='sparkmod:sky_beam'||(attacker&&areTeammates(attacker,e)))continue;
     const to={x:e.location.x,y:e.location.y+1,z:e.location.z},src=from,k=jumped;
     system.runTimeout(()=>{F.bolt(d,src,to,{color:F.C.white,size:.3,branches:1},4);F.sfx(d,'sparkmod.sword.chain',to,1.4,1.2);
       safe(()=>e.applyDamage(awakened?6:4,attacker?{cause:'lightning',damagingEntity:attacker}:undefined));},3+k*3);
@@ -1335,7 +1335,7 @@ world.afterEvents.entityHurt?.subscribe(ev=>{
   F.sparks(d,c,awakened?26:16,6,F.C.gold);F.orb(d,c,awakened?2.2:1.5,F.C.gold,.15,.8);
   F.sfx(d,'sparkmod.sword.hit',c,1.3,.9+Math.random()*.25);
   if(awakened&&Math.random()<.2){   // awakened: lightning arcs to a second enemy
-    const next=safe(()=>d.getEntities({location:v.location,maxDistance:5}),[]).find(e=>e.id!==v.id&&e.id!==a.id&&e.typeId!=='minecraft:item'&&e.getComponent?.('minecraft:health')&&!areTeammates(a,e));
+    const next=safe(()=>d.getEntities({location:v.location,maxDistance:5}),[]).find(e=>e.id!==v.id&&e.id!==a.id&&e.typeId!=='minecraft:item'&&e.typeId!=='sparkmod:sky_beam'&&e.getComponent?.('minecraft:health')&&!areTeammates(a,e));
     if(next){F.bolt(d,c,{x:next.location.x,y:next.location.y+1,z:next.location.z},{color:F.C.white,size:.25,branches:1},4);F.sfx(d,'sparkmod.sword.chain',next.location,1.2,1.3);
       safe(()=>next.applyDamage(3,{cause:'lightning',damagingEntity:a}));}
   }
@@ -1368,7 +1368,7 @@ function lightningDash(p){
   F.flash(d,c1,4,F.C.white);F.shock(d,end,3,F.C.gold,.5);F.sfx(d,'sparkmod.titan.zap',c1,2,1.2);
   let hits=0;
   for(const e of safe(()=>d.getEntities({location:{x:(start.x+end.x)/2,y:start.y,z:(start.z+end.z)/2},maxDistance:len/2+2.5}),[])){
-    if(e.id===p.id||e.typeId==='minecraft:item'||!e.getComponent?.('minecraft:health')||areTeammates(p,e))continue;
+    if(e.id===p.id||e.typeId==='minecraft:item'||e.typeId==='sparkmod:sky_beam'||!e.getComponent?.('minecraft:health')||areTeammates(p,e))continue;
     const t=Math.max(0,Math.min(len,(e.location.x-start.x)*dir.x+(e.location.z-start.z)*dir.z));
     const off=Math.hypot(e.location.x-(start.x+dir.x*t),e.location.z-(start.z+dir.z*t));
     if(off>1.8||Math.abs(e.location.y-start.y)>2.5)continue;

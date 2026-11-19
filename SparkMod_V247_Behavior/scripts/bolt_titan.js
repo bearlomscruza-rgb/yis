@@ -216,7 +216,7 @@ function enhancedSonicBeam(d,o,u,reach,big){
 }
 
 function isTarget(e){
- if(!e || TYPES.includes(e.typeId) || e.typeId==='minecraft:armor_stand')return false;
+ if(!e || TYPES.includes(e.typeId) || e.typeId==='minecraft:armor_stand' || e.typeId==='sparkmod:sky_beam' || e.typeId==='sparkmod:god_villager')return false;
  if(!safe(()=>alive(e),false))return false;
  if(e.typeId==='minecraft:player'){
   const mode=safe(()=>String(e.getGameMode()).toLowerCase(),'survival');

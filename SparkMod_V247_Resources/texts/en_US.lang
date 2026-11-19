@@ -8,3 +8,4 @@ tile.sparkmod:scorched_grass.name=Scorched Grass
 entity.sparkmod:god_villager.name=God Villager
 item.sparkmod:spark_bow.name=Spark Bow
 tile.sparkmod:scorched_log.name=Scorched Log
+entity.sparkmod:sky_beam.name=Spark Sky Beam
