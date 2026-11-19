@@ -4,8 +4,11 @@ import {terrainTop} from './terrain_v184.js';
 // World centre remains X=1500, Z=1500, and the usable Spark Altar is kept.
 // The previous 61x35x61 pyramid and approach are removed once in old worlds.
 import { world, system } from '@minecraft/server';
+import { getSite, siteOf } from './sites_v244.js';
 
-const TX = 1500, TZ = 1500;
+// V244: the position comes from sites_v244.js (classic X 1500 Z 1500 unless that's ocean/river).
+let TX = 1500, TZ = 1500;
+function refreshSite(){const s=siteOf('shrine');TX=s.x;TZ=s.z;return !!getSite('shrine');}
 const NEW_FLAG = 'sparkmod:temple_custom_v166_placed';
 const PREVIOUS_FLAG = 'sparkmod:temple_sparks_v114_placed';
 const HEIGHT_KEY = 'sparkmod:temple_surface_y';
@@ -69,6 +72,7 @@ function oldTempleClearance(surfaceY) {
   return actions;
 }
 function startPlacement(dimension) {
+  if (!refreshSite()) return;
   if (pending || doneThisSession || system.currentTick < retryAfter) return;
   try {
     if (world.getDynamicProperty(NEW_FLAG) === true) {

@@ -1,5 +1,6 @@
 import {world,system} from '@minecraft/server';
 import {terrainTop} from './terrain_v184.js';
+import {siteOf} from './sites_v244.js';
 
 // SparkMod V232: random structure placement.
 // The Spark Shrine (Temple of Sparks, 1500,1500) and the Spark Colosseum (1750,1500) stay where they
@@ -12,7 +13,8 @@ import {terrainTop} from './terrain_v184.js';
 // every couple of seconds, and a structure is built there when the spot qualifies.
 const BOUND=2500;
 const SITES_KEY='sparkmod:v232_sites';
-const FIXED=[{x:1500,z:1500,r:45,name:'Spark Shrine'},{x:1750,z:1500,r:55,name:'Spark Colosseum'}];
+// V244: the Shrine and Colosseum positions come from sites_v244.js.
+const fixedSites=()=>[{...siteOf('shrine'),r:45,name:'Spark Shrine'},{...siteOf('colosseum'),r:55,name:'Spark Colosseum'}];
 export const TYPES={
  tower:{structure:'sparkmod:tower_graveyard',w:64,d:50,count:10,name:'Tower and Graveyard'},
  castle:{structure:'sparkmod:spark_castle',w:40,d:40,count:4,name:'Spark Castle'},
@@ -70,7 +72,7 @@ function surface(dim,x,z){
 function checkSite(dim,type,cx,cz){
  const t=TYPES[type],hw=Math.ceil(t.w/2)+2,hd=Math.ceil(t.d/2)+2;
  if(Math.abs(cx)+hw>BOUND||Math.abs(cz)+hd>BOUND)return null;               // stay inside 5k x 5k
- for(const f of FIXED)if(Math.hypot(cx-f.x,cz-f.z)<f.r+Math.max(t.w,t.d)+60)return null;
+ for(const f of fixedSites())if(Math.hypot(cx-f.x,cz-f.z)<f.r+Math.max(t.w,t.d)+60)return null;
  for(const s of allSites())if(Math.hypot(cx-s.x,cz-s.z)<MIN_SPACING)return null;
  // Footprint must be loaded and reasonably flat dry land.
  const pts=[[cx,cz],[cx-hw,cz-hd],[cx+hw,cz-hd],[cx-hw,cz+hd],[cx+hw,cz+hd],[cx,cz-hd],[cx,cz+hd],[cx-hw,cz],[cx+hw,cz]];
@@ -224,10 +226,10 @@ function retrofitTargets(){
  const out=[];
  const cy=world.getDynamicProperty('sparkmod:colosseum_sparks_v182_y');
  if(world.getDynamicProperty('sparkmod:colosseum_sparks_v182_placed')===true&&typeof cy==='number')
-  out.push({key:'colosseum',rec:{type:'colosseum',x:1750,z:1500,w:64,d:50},groundY:cy+2,baseY:cy});
+  out.push({key:'colosseum',rec:{type:'colosseum',...siteOf('colosseum'),w:64,d:50},groundY:cy+2,baseY:cy});
  const ty=world.getDynamicProperty('sparkmod:temple_surface_y');
  if(world.getDynamicProperty('sparkmod:temple_custom_v166_placed')===true&&typeof ty==='number')
-  out.push({key:'shrine',rec:{type:'shrine',x:1500,z:1500,w:50,d:25},groundY:ty,baseY:ty-4});
+  out.push({key:'shrine',rec:{type:'shrine',...siteOf('shrine'),w:50,d:25},groundY:ty,baseY:ty-4});
  for(const s of sites())if(s.type!=='arena'&&!s.blended)out.push({key:'site_'+s.x+'_'+s.z,rec:s,groundY:s.y-1,baseY:s.y});
  return out;
 }
@@ -254,7 +256,7 @@ system.afterEvents.scriptEventReceive.subscribe(ev=>{
  if(safe(()=>p.playerPermissionLevel,2)<2){safe(()=>p.sendMessage('§cOnly operators can list structure locations - go explore the plains!'));return;}
  system.run(()=>{
   safe(()=>p.sendMessage('§6⚡ Spark structures:'));
-  for(const f of FIXED)safe(()=>p.sendMessage(`§e${f.name}: §fX ${f.x}, Z ${f.z}`));
+  for(const f of fixedSites())safe(()=>p.sendMessage(`§e${f.name}: §fX ${f.x}, Z ${f.z}`));
   for(const s of allSites())safe(()=>p.sendMessage(`§e${TYPES[s.type]?.name||s.type}: §fX ${s.x}, Z ${s.z}`));
   const left=remaining();
   safe(()=>p.sendMessage('§7Still to be found: '+Object.entries(left).filter(([,n])=>n>0).map(([k,n])=>`${n} ${TYPES[k].name}`).join(', ')||'none'));

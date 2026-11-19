@@ -6,6 +6,7 @@ import './structure_discovery_v188.js';
 import './structure_discovery_v188.js';
 import './castle_spawn_v200.js';
 import './world_structures_v183.js';
+import './sites_v244.js';
 import './structures_v232.js';
 import './bolt_titan.js';
 import './titan_boss.js';
@@ -19,6 +20,7 @@ import { ActionFormData, ModalFormData } from '@minecraft/server-ui';
 import { issueGodArmor, rechargeSparkChest, sparkChestStatus, sparkChestAwakened } from './spark_systems_v229.js';
 import * as F from './titan_fx_v217.js';
 import { initSparkBow, forgeSparkBow, awakenSparkBow, rechargeSparkBow, sparkBowShrineLabel } from './spark_bow_v238.js';
+import { siteOf, getSite } from './sites_v244.js';
 
 // SparkMod V25: gameplay polish pass. Requires custom item/entity/block JSON.
 // V59: Spark Dimension removed. Weapons, armor, token and gacha remain.
@@ -775,7 +777,7 @@ system.afterEvents.scriptEventReceive.subscribe(e=>{
  const temple=world.getDynamicProperty('sparkmod:temple_custom_v166_placed')===true;
  const arena=world.getDynamicProperty('sparkmod:underground_pvp_arena_v167_placed')===true;
  tell(p,'§aSparkMod V204 scripts active. Temple: '+(temple?'placed':'not yet placed')+'; Underground Arena: '+(arena?'placed':'not yet placed'));
- tell(p,'§7Spark Shrine: X1500 Z1500. Colosseum: X1750 Z1500. Other structures appear on the plains as you explore (/scriptevent sparkmod:structures).');
+ tell(p,`§7Spark Shrine: X${siteOf('shrine').x} Z${siteOf('shrine').z}. Colosseum: X${siteOf('colosseum').x} Z${siteOf('colosseum').z}. Other structures appear on the plains as you explore (/scriptevent sparkmod:structures).`);
 });
 // V186: in-game verification. Run /scriptevent sparkmod:health
 system.afterEvents.scriptEventReceive.subscribe(e => {
@@ -1540,9 +1542,11 @@ world.afterEvents.playerSpawn.subscribe(({player,initialSpawn})=>{
     const cy=world.getDynamicProperty('sparkmod:colosseum_sparks_v182_y');
     const sy=world.getDynamicProperty('sparkmod:temple_surface_y');
     tell(player,'§6§l⚡ SPARK LOCATIONS LEAKED ⚡');
-    tell(player,`§eSpark Colosseum: §fX 1750, ${typeof cy==='number'?'Y '+(cy+4)+', ':''}Z 1500 §7(summon the Bolt Titan with 1 diamond)`);
-    tell(player,`§eSpark Shrine: §fX 1500, ${typeof sy==='number'?'Y '+sy+', ':''}Z 1500 §7(awaken, forge and recharge your Spark gear)`);
-  },60);
+    // V244: the real positions (moved to plains if the classic spot was ocean/river).
+    const co=siteOf('colosseum'),sh=siteOf('shrine');
+    tell(player,`§eSpark Colosseum: §fX ${co.x}, ${typeof cy==='number'?'Y '+(cy+4)+', ':''}Z ${co.z} §7(summon the Bolt Titan with 1 diamond)${co.moved?' §8- moved off the water to plains':''}`);
+    tell(player,`§eSpark Shrine: §fX ${sh.x}, ${typeof sy==='number'?'Y '+sy+', ':''}Z ${sh.z} §7(awaken, forge and recharge your Spark gear)${sh.moved?' §8- moved off the water to plains':''}`);
+  },100);
 });
 // V8: instant-mining action on USE-ON-BLOCK with the appropriate tool.
 // This is a Bedrock-friendly interaction alternative to left-click instant breaking.

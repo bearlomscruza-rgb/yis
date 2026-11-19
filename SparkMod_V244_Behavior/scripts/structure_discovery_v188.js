@@ -1,13 +1,15 @@
 // V188: Announce the player's own coordinates when entering a MAIN Spark structure.
 // Called after startup. No worldwide broadcast of a player's location.
 import {world,system} from '@minecraft/server';
+import {siteOf} from './sites_v244.js';
 const SITES=[
  {name:'TEMPLE OF SPARKS',x:1500,z:1500,r:44,flag:'sparkmod:temple_custom_v166_placed'},
  {name:'COLOSSEUM OF SPARKS',x:1750,z:1500,r:53,flag:'sparkmod:colosseum_sparks_v182_placed'},
  {name:'UNDERGROUND FIGHT PIT',x:2000,z:1500,r:38,flag:'sparkmod:underground_pvp_arena_v167_placed'}
 ];
 // V232: the fight pit now has a random location.
-function arenaSite(){try{const s=JSON.parse(world.getDynamicProperty('sparkmod:v232_arena_site')||'null');if(s){SITES[2].x=s.x;SITES[2].z=s.z;}}catch{}}
+function arenaSite(){
+ const sh=siteOf('shrine'),co=siteOf('colosseum');SITES[0].x=sh.x;SITES[0].z=sh.z;SITES[1].x=co.x;SITES[1].z=co.z;try{const s=JSON.parse(world.getDynamicProperty('sparkmod:v232_arena_site')||'null');if(s){SITES[2].x=s.x;SITES[2].z=s.z;}}catch{}}
 const insideByPlayer=new Map();
 const lastRevealByPlayer=new Map();
 const msgLoc=p=>{const a=p.location;return `X: ${Math.floor(a.x)}   Y: ${Math.floor(a.y)}   Z: ${Math.floor(a.z)}`;};

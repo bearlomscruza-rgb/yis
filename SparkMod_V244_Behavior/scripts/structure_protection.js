@@ -2,6 +2,7 @@
 // Temple center 1500,1500 (50x20x25); PvP arena center 2000,1500 (35x50x35).
 import {world,system} from '@minecraft/server';
 import {sites as randomSites} from './structures_v232.js';
+import {siteOf} from './sites_v244.js';
 
 // V211: all four player-built Spark Castles are permanently protected.
 // The spawn castle follows the original world spawn, not fixed coordinates.
@@ -32,8 +33,8 @@ export function inside(pos){
   const ay=world.getDynamicProperty('sparkmod:underground_pvp_arena_v167_surface_y');
   // Restrict only after each structure has successfully generated.
   if(world.getDynamicProperty('sparkmod:temple_custom_v166_placed')===true &&
-     typeof ty==='number' && pos.x>=1475 && pos.x<1525 &&
-     pos.z>=1488 && pos.z<1513 && pos.y>=ty-5 && pos.y<=ty+18)return true;
+     typeof ty==='number' && (()=>{const t=siteOf('shrine');return pos.x>=t.x-25 && pos.x<t.x+25 &&
+     pos.z>=t.z-12 && pos.z<t.z+13;})() && pos.y>=ty-5 && pos.y<=ty+18)return true;
   // V232: the arena may be at a random spot; older worlds keep it at X 2000, Z 1500.
   let arena={x:2000,z:1500};
   try{const s=JSON.parse(world.getDynamicProperty('sparkmod:v232_arena_site')||'null');if(s)arena=s;}catch{}
@@ -43,8 +44,8 @@ export function inside(pos){
   const cy=world.getDynamicProperty('sparkmod:colosseum_sparks_v182_y');
   if(world.getDynamicProperty('sparkmod:bolt_titan_defeated')!==true &&
      world.getDynamicProperty('sparkmod:colosseum_sparks_v182_placed')===true &&
-     typeof cy==='number' && pos.x>=1718 && pos.x<1782 &&
-     pos.z>=1475 && pos.z<1525 && pos.y>=cy && pos.y<cy+20)return true;
+     typeof cy==='number' && (()=>{const c=siteOf('colosseum');return pos.x>=c.x-32 && pos.x<c.x+32 &&
+     pos.z>=c.z-25 && pos.z<c.z+25;})() && pos.y>=cy && pos.y<cy+20)return true;
   return false;
 }
 function protect(event){
@@ -72,7 +73,7 @@ world.beforeEvents.playerInteractWithBlock.subscribe(event=>{
   // Players must be able to open the central summoning chest and deposit a diamond.
   const chestY=world.getDynamicProperty('sparkmod:colosseum_sparks_v182_y');
   if(event.block.typeId==='minecraft:chest' && typeof chestY==='number' &&
-     pos.x===1750 && pos.z===1500 && pos.y===chestY+4)return;
+     pos.x===siteOf('colosseum').x && pos.z===siteOf('colosseum').z && pos.y===chestY+4)return;
   const d=faces[event.blockFace]||[0,0,0];
   if(inside(pos)||inside({x:pos.x+d[0],y:pos.y+d[1],z:pos.z+d[2]})){
     event.cancel=true;

@@ -1,9 +1,11 @@
 import {terrainTop} from './terrain_v184.js';
 import {world,system} from '@minecraft/server';
+import {getSite,siteOf} from './sites_v244.js';
 
 // V187: Existing V186 worlds keep their colosseum and completion flag.
 // The imported structure is 64 x 20 x 50, with its central floor at local Y=3.
-const CX=1750,CZ=1500,SX=64,SZ=50;
+// V244: the position comes from sites_v244.js (classic X 1750 Z 1500 unless that's ocean/river).
+let CX=1750,CZ=1500;const SX=64,SZ=50;
 const FLAG='sparkmod:colosseum_sparks_v182_placed';
 const YKEY='sparkmod:colosseum_sparks_v182_y';
 const BOSS='sparkmod:bolt_titan';
@@ -11,7 +13,8 @@ const FORMS=[BOSS,'sparkmod:spark_demon','sparkmod:bolt_titan_phase3'];
 const DEAD='sparkmod:bolt_titan_defeated';
 const PAYMENT='minecraft:diamond';
 const SUMMONED='sparkmod:colosseum_diamond_summoned_v204';
-const ORIGIN={x:CX-32,z:CZ-25};
+let ORIGIN={x:CX-32,z:CZ-25};
+function refreshSite(){const s=siteOf('colosseum');CX=s.x;CZ=s.z;ORIGIN={x:CX-32,z:CZ-25};return !!getSite('colosseum');}
 const safe=(fn,fallback)=>{try{return fn();}catch(e){console.warn('[Spark Colosseum] '+e);return fallback;}};
 const getDimension=()=>world.getDimension('overworld');
 let placementAttempt=0,spawning=false,lastWarn=0;
@@ -192,6 +195,6 @@ function offer(){
  finally{spawning=false;}
 }
 // World access is deferred until tick callbacks (fix from V186).
-system.runInterval(()=>safe(build),40);
-system.runInterval(()=>safe(offer),20);
+system.runInterval(()=>{if(refreshSite())safe(build);},40);
+system.runInterval(()=>{if(refreshSite())safe(offer);},20);
 system.runInterval(()=>safe(enforceSingleBoss),40);
