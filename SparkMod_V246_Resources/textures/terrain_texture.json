@@ -22,6 +22,12 @@
     },
     "sm_scorched_dirt": {
       "textures": "textures/blocks/sm_scorched_dirt"
+    },
+    "sm_scorched_log_side": {
+      "textures": "textures/blocks/sm_scorched_log_side"
+    },
+    "sm_scorched_log_top": {
+      "textures": "textures/blocks/sm_scorched_log_top"
     }
   }
 }

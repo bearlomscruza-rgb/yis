@@ -151,6 +151,14 @@ system.runInterval(()=>{
    F.bolt(d,{x:q.x,y:q.y+30,z:q.z},q,{color:F.C.white,size:.5,branches:2},4);
   }
   F.converge(d,{x:c.x,y:c.y+1.4,z:c.z},2,12,F.C.gold);
+  // V246: spinning rings of light in front of the bow, throwing sparks while it charges.
+  const eye=safe(()=>p.getHeadLocation(),{x:c.x,y:c.y+1.6,z:c.z}),v=safe(()=>p.getViewDirection(),{x:0,y:0,z:1});
+  const grow=Math.min(1,age/40);
+  for(const [dist,r] of [[1.4,.8],[2.4,1.15],[3.4,1.5]]){
+   const pts=ringAround(d,{x:eye.x+v.x*dist,y:eye.y+v.y*dist-.1,z:eye.z+v.z*dist},v,r*(.5+.5*grow),12,F.C.gold,.32,age*.25*(dist%2?1:-1));
+   const q=pts[Math.floor(Math.random()*pts.length)];F.sparks(d,q,3+Math.floor(grow*5),3,F.C.gold);
+  }
+  if(age%8===0)F.sfx(d,'sparkmod.titan.zap',eye,.8,1.4+grow*.4);
  }
 },4);
 function endRitual(id,p){
@@ -215,22 +223,42 @@ function fireJudgment(p){
  safe(()=>p.onScreenDisplay.setActionBar('§6⚡ Storm Judgment fired! §7Reactivate the bow at the Spark Shrine (10 tokens) - 10 min cooldown.'));
 }
 // The beam, giant lightning, 10 hearts through Protection IV, freeze + Weakness III, crater.
+function ringAround(d,c,u,r,n,color,size=.45,spin=0){
+ // a ring of light perpendicular to direction u
+ const a=Math.abs(u.y)<.9?{x:0,y:1,z:0}:{x:1,y:0,z:0};
+ let v={x:u.y*a.z-u.z*a.y,y:u.z*a.x-u.x*a.z,z:u.x*a.y-u.y*a.x};const vl=Math.hypot(v.x,v.y,v.z)||1;v={x:v.x/vl,y:v.y/vl,z:v.z/vl};
+ const w={x:u.y*v.z-u.z*v.y,y:u.z*v.x-u.x*v.z,z:u.x*v.y-u.y*v.x};
+ const pts=[];
+ for(let i=0;i<n;i++){const t=spin+i*2*Math.PI/n,q={x:c.x+(v.x*Math.cos(t)+w.x*Math.sin(t))*r,y:c.y+(v.y*Math.cos(t)+w.y*Math.sin(t))*r,z:c.z+(v.z*Math.cos(t)+w.z*Math.sin(t))*r};F.orb(d,q,size,color,.25,.9);pts.push(q);}
+ return pts;
+}
+const BEAM_SPEED=6;   // blocks per tick: twice a full-power arrow
 function strike(p,d,eye,target,impact){
  const aim={x:impact.x,y:impact.y+1,z:impact.z};
- // The beam: a column about 3x as thick as a beacon beam, from the bow to the target ...
- const len=Math.hypot(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),u={x:(aim.x-eye.x)/len,y:(aim.y-eye.y)/len,z:(aim.z-eye.z)/len};
- F.sfx(d,'sparkmod.titan.beam',eye,6,.6);F.sfx(d,'sparkmod.titan.sun_explode',aim,6,1.1);
- for(let k=0;k<8;k++)system.runTimeout(()=>{
-  for(let s=1;s<=len;s+=.9){
-   const q={x:eye.x+u.x*s,y:eye.y+u.y*s,z:eye.z+u.z*s};
-   F.orb(d,q,3.2,F.C.gold,.25,.85);F.orb(d,q,1.6,F.C.white,.25,1);
-  }
-  F.arc(d,eye,aim,{color:F.C.white,size:.5,jag:1.2,branches:3,max:200});
- },k*2);
- // ... and a pillar of light from the sky onto the impact point.
- // V242: the sky pillar stays twice as long (2.4 s), then fades away over 1 s.
- for(let k=0;k<24;k++)system.runTimeout(()=>{for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2,k%2?F.C.white:F.C.gold,.3,.8);},k*2);
- for(let k=0;k<10;k++)system.runTimeout(()=>{const f=1-(k+1)/11;for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2*(.4+.6*f),F.C.gold,.3,.8*f);},48+k*2);
+ const len=Math.hypot(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z)||1,u={x:(aim.x-eye.x)/len,y:(aim.y-eye.y)/len,z:(aim.z-eye.z)/len};
+ // V246: firing starts a thunderstorm.
+ if(d.id==='minecraft:overworld')safe(()=>d.setWeather(WeatherType.Thunder,6000));
+ F.sfx(d,'sparkmod.titan.beam',eye,6,.6);safe(()=>d.playSound('ambient.weather.thunder',eye,{volume:6,pitch:.8}));
+ // V246: the beam TRAVELS (twice as fast as an arrow) wrapped in spinning rings of light.
+ const travel=Math.max(1,Math.ceil(len/BEAM_SPEED));
+ const drawBeam=(upto,k)=>{
+  for(let s=1;s<=upto;s+=.9){const q={x:eye.x+u.x*s,y:eye.y+u.y*s,z:eye.z+u.z*s};F.orb(d,q,3.2,F.C.gold,.25,.85);F.orb(d,q,1.6,F.C.white,.25,1);}
+  for(let s=3;s<=upto;s+=5)ringAround(d,{x:eye.x+u.x*s,y:eye.y+u.y*s,z:eye.z+u.z*s},u,2.4,12,(s/5)%2<1?F.C.white:F.C.gold,.5,k*.35+s*.2);
+ };
+ for(let t=0;t<=travel;t++)system.runTimeout(()=>{
+  const upto=Math.min(len,(t+1)*BEAM_SPEED);
+  drawBeam(upto,t);
+  const head={x:eye.x+u.x*upto,y:eye.y+u.y*upto,z:eye.z+u.z*upto};
+  F.orb(d,head,5,F.C.white,.2);F.sparks(d,head,10,6,F.C.gold);
+ },t);
+ for(let k=1;k<=8;k++)system.runTimeout(()=>{drawBeam(len,travel+k);F.arc(d,eye,aim,{color:F.C.white,size:.5,jag:1.2,branches:3,max:200});},travel+k*2);
+ system.runTimeout(()=>impactAt(p,d,eye,target,impact,aim),travel+1);
+}
+function impactAt(p,d,eye,target,impact,aim){
+ F.sfx(d,'sparkmod.titan.sun_explode',aim,6,1.1);
+ // V246: the pillar of light from the sky stays for 20 seconds, then fades away over 2 seconds.
+ for(let k=0;k<200;k++)system.runTimeout(()=>{for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2,k%2?F.C.white:F.C.gold,.3,.8);if(k%10===0)ringAround(d,{x:aim.x,y:aim.y+20+((k*3)%40),z:aim.z},{x:0,y:1,z:0},4,16,F.C.gold,.7,k*.2);},k*2);
+ for(let k=0;k<20;k++)system.runTimeout(()=>{const f=1-(k+1)/21;for(let y=0;y<70;y+=1.5)F.orb(d,{x:aim.x,y:aim.y+y,z:aim.z},3.2*(.3+.7*f),F.C.gold,.3,.8*f);},400+k*2);
  F.flash(d,aim,14,F.C.white);F.flash(d,aim,8,F.C.gold);
  for(let k=0;k<4;k++)system.runTimeout(()=>{F.shock(d,impact,6+k*5,k%2?F.C.white:F.C.gold,1);F.pulse(d,aim,8+k*6,F.C.gold,.7);},k*3);
  F.debris(d,impact,4,80);F.smoke(d,aim,14,2,F.C.dust,.8);F.sparks(d,aim,90,14,F.C.gold);
@@ -256,7 +284,81 @@ function strike(p,d,eye,target,impact){
  }
  megaLightning(d,impact);
  system.runTimeout(()=>blastCrater(d,impact),3);
+ startScorch(d,impact,250);
 }
+
+// ---------------------------------------------------------------- V246: scorched land (250 blocks)
+// Grass turns to scorched grass, leaves burn away, logs become scorched logs, plants and bushes
+// burn to dead bushes. Worked through chunk by chunk, nearest the impact first, wherever the land
+// is loaded; farther land is scorched later when players go there.
+const SCORCH_KEY='sparkmod:v246_scorch';
+let zoneCache=null;   // loaded on first use (world data can't be read while scripts start up)
+const zones=()=>zoneCache??=(safe(()=>JSON.parse(world.getDynamicProperty(SCORCH_KEY)||'[]'),[])||[]);
+const saveZones=()=>safe(()=>world.setDynamicProperty(SCORCH_KEY,JSON.stringify(zones().slice(-6))));
+function startScorch(d,at,r){
+ zones().push({dim:d.id,x:Math.floor(at.x),z:Math.floor(at.z),r,done:[]});
+ while(zones().length>6)zones().shift();
+ saveZones();
+}
+const GROUND=new Set(['minecraft:grass_block','minecraft:grass','minecraft:podzol','minecraft:mycelium','minecraft:moss_block','sparkmod:yellow_grass','minecraft:dirt_with_roots']);
+const PLANT=/short_grass|tall_grass|tallgrass|fern|flower|poppy|dandelion|tulip|orchid|allium|bluet|daisy|cornflower|lily_of|rose_bush|peony|lilac|sunflower|berry_bush|^minecraft:bush|petals|double_plant|red_flower|yellow_flower|torchflower|pitcher|wildflowers|dry_grass/;
+function scorchColumn(d,x,z){
+ const top=safe(()=>d.getTopmostBlock({x,z}),null);
+ if(!top)return;
+ if(safe(()=>protectedArea({x,y:top.location.y,z}),false))return;
+ let y=top.location.y,bush=false;
+ for(let k=0;k<48;k++,y--){
+  const b=safe(()=>d.getBlock({x,y,z}));if(!b)return;
+  const id=b.typeId;
+  if(id==='minecraft:air'||id==='sparkmod:scorched_log')continue;
+  if(/leaves|azalea|vine|snow_layer|mangrove_roots/.test(id)){safe(()=>b.setType('minecraft:air'));continue;}
+  if(/_log$|_wood$|_stem$|log2|^minecraft:log/.test(id)&&!/stripped/.test(id)){safe(()=>b.setType('sparkmod:scorched_log'));continue;}
+  if(PLANT.test(id)){safe(()=>b.setType('minecraft:air'));bush=bush||Math.random()<.35;continue;}
+  if(GROUND.has(id)){
+   safe(()=>b.setType('sparkmod:scorched_grass'));
+   if(bush){const a=safe(()=>d.getBlock({x,y:y+1,z}));if(a?.isAir)safe(()=>a.setType('minecraft:deadbush'));}
+  }
+  return;                                         // stone, sand, water... stop here
+ }
+}
+let scorchBusy=false;
+system.runInterval(()=>{
+ if(scorchBusy||!zones().length)return;
+ scorchBusy=true;
+ try{
+  let budget=3;                                    // chunks per run
+  for(const z of zones()){
+   const d=safe(()=>world.getDimension(z.dim));if(!d)continue;
+   const done=new Set(z.done);
+   const cands=new Map();
+   for(const p of safe(()=>d.getPlayers(),[])){
+    const pcx=Math.floor(p.location.x/16),pcz=Math.floor(p.location.z/16);
+    for(let dx=-5;dx<=5;dx++)for(let dz=-5;dz<=5;dz++){
+     const cx=pcx+dx,cz=pcz+dz,k=cx+','+cz;
+     if(done.has(k)||cands.has(k))continue;
+     const mx=cx*16+8,mz=cz*16+8;
+     const dist=Math.hypot(mx-z.x,mz-z.z);
+     if(dist>z.r+12)continue;
+     cands.set(k,{cx,cz,dist});
+    }
+   }
+   const list=[...cands.values()].sort((a,b)=>a.dist-b.dist);
+   for(const c of list){
+    if(budget<=0)break;
+    if(!safe(()=>d.getBlock({x:c.cx*16+8,y:64,z:c.cz*16+8}),null))continue;   // not loaded yet
+    for(let x=0;x<16;x++)for(let zz=0;zz<16;zz++){
+     const wx=c.cx*16+x,wz=c.cz*16+zz;
+     if(Math.hypot(wx-z.x,wz-z.z)<=z.r)scorchColumn(d,wx,wz);
+    }
+    const sx=c.cx*16+8,sz=c.cz*16+8,top=safe(()=>d.getTopmostBlock({x:sx,z:sz}),null);
+    if(top){F.smoke(d,{x:sx,y:top.location.y+1.5,z:sz},4,3,F.C.smoke,.8);F.sparks(d,{x:sx,y:top.location.y+1,z:sz},8,3,F.C.orange);}
+    z.done.push(c.cx+','+c.cz);budget--;
+   }
+  }
+  saveZones();
+ }finally{scorchBusy=false;}
+},4);
+
 // V243: the Spark God casts the same Storm Judgment: a ritual circle of runes and lightning around
 // it for `ritualTicks`, then the beam at its target from high above its head.
 export function titanJudgment(titan,target,ritualTicks=50,ringRadius=12){
@@ -284,7 +386,7 @@ export function titanJudgment(titan,target,ritualTicks=50,ringRadius=12){
 }
 // V242: a crater 50 blocks across that goes all the way down to bedrock - straight round walls stepping in at the
 // bottom; any hill/trees up to 15 blocks above it are blasted away too. Dug over a few ticks.
-const CRATER_R=25,CRATER_DEPTH=40,CRATER_ABOVE=15;
+const CRATER_R=25,CRATER_DEPTH=40,CRATER_ABOVE=40;   // V246: clear 40 above so it is a clean round pit
 function blastCrater(d,at){
  const x=Math.floor(at.x),y=Math.floor(at.y),z=Math.floor(at.z);
  const floor=d.id==='minecraft:overworld'?-59:d.id==='minecraft:nether'?5:0;

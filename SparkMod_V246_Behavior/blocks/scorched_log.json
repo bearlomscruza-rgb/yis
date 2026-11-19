@@ -2,35 +2,37 @@
   "format_version": "1.21.0",
   "minecraft:block": {
     "description": {
-      "identifier": "sparkmod:scorched_grass",
+      "identifier": "sparkmod:scorched_log",
       "menu_category": {
         "category": "nature"
       }
     },
     "components": {
-      "minecraft:display_name": "Scorched Grass",
+      "minecraft:display_name": "Scorched Log",
       "minecraft:geometry": "minecraft:geometry.full_block",
       "minecraft:material_instances": {
         "*": {
-          "texture": "sm_scorched_grass_side",
+          "texture": "sm_scorched_log_side",
           "render_method": "opaque"
         },
         "up": {
-          "texture": "sm_scorched_grass_top",
+          "texture": "sm_scorched_log_top",
           "render_method": "opaque"
         },
         "down": {
-          "texture": "sm_scorched_dirt",
+          "texture": "sm_scorched_log_top",
           "render_method": "opaque"
         }
       },
       "minecraft:destructible_by_mining": {
-        "seconds_to_destroy": 0.6
+        "seconds_to_destroy": 1.2
       },
       "minecraft:destructible_by_explosion": {
-        "explosion_resistance": 0.6
+        "explosion_resistance": 2
       },
-      "minecraft:loot": "loot_tables/blocks/scorched_grass.json"
+      "minecraft:loot": "loot_tables/blocks/scorched_log.json",
+      "tag:wood": {},
+      "tag:log": {}
     }
   }
 }

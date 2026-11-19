@@ -7,3 +7,4 @@ entity.sparkmod:bolt_titan_phase3.name=Possessed Bolt Titan
 tile.sparkmod:scorched_grass.name=Scorched Grass
 entity.sparkmod:god_villager.name=God Villager
 item.sparkmod:spark_bow.name=Spark Bow
+tile.sparkmod:scorched_log.name=Scorched Log

@@ -9,5 +9,8 @@
   },
   "sparkmod:scorched_grass": {
     "sound": "grass"
+  },
+  "sparkmod:scorched_log": {
+    "sound": "wood"
   }
 }
