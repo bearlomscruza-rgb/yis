@@ -22,7 +22,28 @@ const tell=(p,m)=>safe(()=>p.sendMessage(m));
 let host={isAlly:()=>false,take:()=>false,count:()=>0,moon:()=>({active:false}),setMoonUsed:()=>{},moonUsed:()=>false};
 export function initSparkBow(h){host={...host,...h};}
 
-export const isSparkBow=item=>item?.typeId==='minecraft:bow'&&(safe(()=>item.getDynamicProperty('sparkmod:spark_bow'),false)===true||!!safe(()=>item.getLore().includes(MARK),false));
+// V243: the Spark Bow is its own item (sparkmod:spark_bow) with its own glowing pale-gold design.
+const legacyBow=item=>item?.typeId==='minecraft:bow'&&(safe(()=>item.getDynamicProperty('sparkmod:spark_bow'),false)===true||!!safe(()=>item.getLore().includes(MARK),false));
+export const isSparkBow=item=>item?.typeId==='sparkmod:spark_bow'||legacyBow(item);
+// Turn older vanilla-bow Spark Bows into the new item, keeping everything about them.
+function upgradeBow(old){
+ const bow=new ItemStack('sparkmod:spark_bow',1);
+ for(const k of ['sparkmod:spark_bow','sparkmod:awakened','sparkmod:bow_spent','sparkmod:bow_ready_at'])safe(()=>{const v=old.getDynamicProperty(k);if(v!==undefined)bow.setDynamicProperty(k,v);});
+ safe(()=>bow.setDynamicProperty('sparkmod:spark_bow',true));
+ for(const e of safe(()=>old.getComponent('minecraft:enchantable')?.getEnchantments(),[]))safe(()=>bow.getComponent('minecraft:enchantable')?.addEnchantment(e));
+ safe(()=>{const a=old.getComponent('minecraft:durability'),b=bow.getComponent('minecraft:durability');b.damage=Math.round(a.damage/a.maxDurability*b.maxDurability);});
+ if(old.nameTag)bow.nameTag=old.nameTag;
+ safe(()=>bow.setLore(old.getLore()));
+ return bow;
+}
+system.runInterval(()=>{
+ for(const p of world.getAllPlayers()){
+  const inv=safe(()=>p.getComponent('minecraft:inventory').container);
+  for(let i=0;i<(inv?.size??0);i++){const it=safe(()=>inv.getItem(i));if(legacyBow(it))safe(()=>inv.setItem(i,upgradeBow(it)));}
+  const eq=safe(()=>p.getComponent('minecraft:equippable'));
+  for(const s of [EquipmentSlot.Mainhand,EquipmentSlot.Offhand]){const it=safe(()=>eq.getEquipment(s));if(legacyBow(it))safe(()=>eq.setEquipment(s,upgradeBow(it)));}
+ }
+},40);
 const heldBow=p=>{const it=safe(()=>p.getComponent('minecraft:equippable')?.getEquipment(EquipmentSlot.Mainhand));return isSparkBow(it)?it:null;};
 const NOT_TARGET=new Set(['minecraft:item','minecraft:xp_orb','minecraft:lightning_bolt','minecraft:arrow']);
 const writeHeld=(p,it)=>safe(()=>p.getComponent('minecraft:equippable').setEquipment(EquipmentSlot.Mainhand,it));
@@ -38,7 +59,7 @@ export function forgeSparkBow(p){
  if(slot<0){tell(p,'§cBring a normal bow to forge into a Spark Bow.');return;}
  if(host.count(p)<8){tell(p,'§cForging a Spark Bow costs 8 Spark Tokens.');return;}
  if(!host.take(p,8)){tell(p,'§cPayment failed.');return;}
- const bow=new ItemStack('minecraft:bow',1);
+ const bow=new ItemStack('sparkmod:spark_bow',1);
  bow.nameTag='§6⚡ Spark Bow';
  safe(()=>bow.setLore([MARK,'§7Awaken it at the Spark Shrine to unlock §6Storm Judgment']));
  safe(()=>bow.setDynamicProperty('sparkmod:spark_bow',true));
@@ -189,6 +210,11 @@ function fireJudgment(p){
   const v=p.getViewDirection();
   impact=hit?{...hit.block.location}:{x:eye.x+v.x*64,y:eye.y+v.y*64,z:eye.z+v.z*64};
  }
+ strike(p,d,eye,target,impact);
+ safe(()=>p.onScreenDisplay.setActionBar('§6⚡ Storm Judgment fired! §7Reactivate the bow at the Spark Shrine (10 tokens) - 10 min cooldown.'));
+}
+// The beam, giant lightning, 10 hearts through Protection IV, freeze + Weakness III, crater.
+function strike(p,d,eye,target,impact){
  const aim={x:impact.x,y:impact.y+1,z:impact.z};
  // The beam: a column about 3x as thick as a beacon beam, from the bow to the target ...
  const len=Math.hypot(aim.x-eye.x,aim.y-eye.y,aim.z-eye.z),u={x:(aim.x-eye.x)/len,y:(aim.y-eye.y)/len,z:(aim.z-eye.z)/len};
@@ -229,7 +255,31 @@ function fireJudgment(p){
  }
  megaLightning(d,impact);
  system.runTimeout(()=>blastCrater(d,impact),3);
- safe(()=>p.onScreenDisplay.setActionBar('§6⚡ Storm Judgment fired! §7Reactivate the bow at the Spark Shrine (10 tokens) - 10 min cooldown.'));
+}
+// V243: the Spark God casts the same Storm Judgment: a ritual circle of runes and lightning around
+// it for `ritualTicks`, then the beam at its target from high above its head.
+export function titanJudgment(titan,target,ritualTicks=50,ringRadius=12){
+ const d=titan.dimension;
+ const alive=()=>safe(()=>titan.isValid,false)&&(safe(()=>titan.getComponent('minecraft:health').currentValue,0)>0);
+ if(d.id==='minecraft:overworld')safe(()=>d.setWeather(WeatherType.Thunder,2400));
+ F.sfx(d,'sparkmod.titan.eclipse',titan.location,6,1);F.sfx(d,'sparkmod.titan.charge_long',titan.location,5,.7);
+ for(const q of safe(()=>d.getPlayers({location:titan.location,maxDistance:96}),[]))
+  safe(()=>q.onScreenDisplay.setTitle('§6§l⚡ STORM JUDGMENT ⚡',{subtitle:'§eThe Spark God draws its bow of light...',fadeInDuration:5,stayDuration:40,fadeOutDuration:10}));
+ for(let t=0;t<ritualTicks;t+=4)system.runTimeout(()=>{
+  if(!alive())return;
+  const c=titan.location;
+  F.warn(d,c,ringRadius,6,F.C.gold);F.warn(d,c,ringRadius/2,6,F.C.white);F.shock(d,c,ringRadius,F.C.gold,.4);
+  if(t%12===0){const a=Math.random()*Math.PI*2,q={x:c.x+Math.cos(a)*ringRadius,y:c.y,z:c.z+Math.sin(a)*ringRadius};q.y=F.groundY(d,q);
+   safe(()=>d.spawnEntity('minecraft:lightning_bolt',q));F.bolt(d,{x:q.x,y:q.y+30,z:q.z},q,{color:F.C.white,size:.5,branches:2},4);}
+ },t);
+ system.runTimeout(()=>{
+  if(!alive())return;
+  const s=safe(()=>titan.getComponent('minecraft:scale')?.value,1)||1;
+  const eye={x:titan.location.x,y:titan.location.y+3.6*s,z:titan.location.z};
+  const ok=target&&safe(()=>target.isValid,false);
+  const impact=ok?{...target.location}:{...titan.location,x:titan.location.x+8};
+  strike(titan,d,eye,ok?target:null,impact);
+ },ritualTicks);
 }
 // V242: a crater 50 blocks across that goes all the way down to bedrock - straight round walls stepping in at the
 // bottom; any hill/trees up to 15 blocks above it are blasted away too. Dug over a few ticks.

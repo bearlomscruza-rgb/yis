@@ -101,14 +101,14 @@ function place(dim,type,cx,cz,info){
   const m=safe(()=>dim.getBlock({x:ox,y:y+1,z:oz}));
   if(m?.typeId==='minecraft:structure_block')safe(()=>m.setType('minecraft:air'));
  }
- const rec={type,x:Math.floor(cx),z:Math.floor(cz),y,w:t.w,d:t.d,biome:info.biome,village:info.nearVillage};
+ const rec={type,x:Math.floor(cx),z:Math.floor(cz),y,w:t.w,d:t.d,biome:info.biome,village:info.nearVillage,blended:true};
  saveSites([...sites(),rec]);
  if(type==='arena'){
   world.setDynamicProperty('sparkmod:v232_arena_site',JSON.stringify(rec));
   world.setDynamicProperty('sparkmod:underground_pvp_arena_v167_surface_y',y+t.rim);
   world.setDynamicProperty('sparkmod:underground_pvp_arena_v167_placed',true);
  }
- blendIn(dim,rec,type==='arena'?y+t.rim:y-1);
+ blendIn(dim,rec,type==='arena'?y+t.rim:y-1,type==='arena'?y+t.rim+1:y);
  for(const p of dim.getPlayers())if(Math.hypot(p.location.x-cx,p.location.z-cz)<160)
   safe(()=>p.sendMessage(`§6⚡ A ${t.name} has appeared${info.nearVillage?' near a village':' on the plains'} at X ${rec.x}, Z ${rec.z}!`));
  console.warn(`[SparkMod V232] ${t.name} placed at ${rec.x},${y},${rec.z} (${info.biome||'biome n/a'})`);
@@ -133,65 +133,76 @@ system.runInterval(()=>{
  }
 },40);
 
-// ---------------------------------------------------------------- V233: blend into the terrain
-// After a structure is placed: fill any gaps under it, slope the surrounding ground smoothly up or
-// down to meet the natural terrain, clear floating leaves/logs from trees it cut through, and
-// plant grass and the odd wildflower on the new ground. Spread over several ticks.
+// ---------------------------------------------------------------- V233/V243: blend into the terrain
+// After a structure is placed (or once for structures that already exist): fill everything under it
+// down to the real ground, then shape a natural earth slope around it that meets the surrounding
+// terrain. The slope grows with the height difference (a structure on a hilltop gets a whole
+// hillside), trees cut by the build lose their floating leaves, and new ground gets grass/flowers.
 const PLANT=/leaves|log|wood|short_grass|tall_grass|tallgrass|fern|flower|poppy|dandelion|tulip|orchid|allium|bluet|daisy|cornflower|lily|rose|peony|lilac|sunflower|bush|vine|mushroom|snow_layer|petals/;
 const SOFT=b=>!b||b.isAir||b.isLiquid||PLANT.test(b.typeId);
 const FLOWERS=['minecraft:poppy','minecraft:dandelion','minecraft:cornflower','minecraft:oxeye_daisy','minecraft:azure_bluet'];
 const hash=(x,z)=>{let h=(x*374761393+z*668265263)|0;h=(h^(h>>>13))*1274126177|0;return ((h^(h>>>16))>>>0)/4294967295;};
-const RING=7;
 function setType(dim,p,id){const b=safe(()=>dim.getBlock(p));if(b)safe(()=>b.setType(id));return !!b;}
-function naturalTop(dim,x,z,around){
- for(let y=around+14;y>=around-14;y--){const b=safe(()=>dim.getBlock({x,y,z}));if(!b)return null;if(!SOFT(b))return y;}
+function fillCol(dim,x,y1,y2,z,id){if(y2<y1)return;safe(()=>dim.runCommand(`fill ${x} ${y1} ${z} ${x} ${y2} ${z} ${id}`));}
+function naturalTop(dim,x,z,around,span=40){
+ for(let y=around+span;y>=around-span;y--){const b=safe(()=>dim.getBlock({x,y,z}));if(!b)return null;if(!SOFT(b))return y;}
  return null;
 }
-function blendIn(dim,rec,groundY){
+// groundY: the structure's own ground surface; baseY: the lowest layer of the structure itself.
+export function blendIn(dim,rec,groundY,baseY=groundY+1){
  const ox=Math.floor(rec.x-rec.w/2),oz=Math.floor(rec.z-rec.d/2),ex=ox+rec.w,ez=oz+rec.d;
+ // How far does the ground around it differ? The slope widens to keep it gentle.
+ let diff=0;
+ for(let i=0;i<24;i++){
+  const t=i/24,side=i%4;
+  const x=side<2?Math.round(ox+(ex-ox)*t):(side===2?ox-3:ex+2);
+  const z=side<2?(side===0?oz-3:ez+2):Math.round(oz+(ez-oz)*t);
+  const top=naturalTop(dim,x,z,groundY);
+  if(top!==null)diff=Math.max(diff,Math.abs(top-groundY));
+ }
+ const ring=Math.max(7,Math.min(36,Math.ceil(diff*1.7)+4));
  const cols=[];
- for(let x=ox-RING;x<ex+RING;x++)for(let z=oz-RING;z<ez+RING;z++){
+ for(let x=ox-ring;x<ex+ring;x++)for(let z=oz-ring;z<ez+ring;z++){
   const inside=x>=ox&&x<ex&&z>=oz&&z<ez;
   if(inside&&rec.type==='arena')continue;           // the pit itself stays open
   const e=Math.max(ox-x,x-(ex-1),oz-z,z-(ez-1),0); // distance out from the footprint edge
+  if(e>0&&Math.hypot(Math.max(0,ox-x,x-(ex-1)),Math.max(0,oz-z,z-(ez-1)))>ring)continue;  // rounded corners
   cols.push({x,z,e,inside});
  }
  let i=0;
  const step=()=>{
-  for(let n=0;n<260&&i<cols.length;n++,i++)safe(()=>blendColumn(dim,cols[i],groundY,rec));
+  for(let n=0;n<200&&i<cols.length;n++,i++)safe(()=>blendColumn(dim,cols[i],groundY,baseY,ring,rec));
   if(i<cols.length)system.runTimeout(step,1);
  };
  system.runTimeout(step,2);
 }
-function blendColumn(dim,c,groundY,rec){
- const {x,z,e,inside}=c;
- if(inside){                                       // foundation: no gaps under the building
-  const atBase=safe(()=>dim.getBlock({x,y:groundY+1,z}));
-  for(let y=groundY,k=0;k<12;y--,k++){
-   const b=safe(()=>dim.getBlock({x,y,z}));if(!b)return;
-   if(!SOFT(b))break;
-   setType(dim,{x,y,z},y===groundY&&SOFT(atBase)?'minecraft:grass_block':'minecraft:dirt');
-  }
+function blendColumn(dim,c,groundY,baseY,ring,rec){
+ const {x,z,inside}=c;
+ if(inside){                                       // foundation: solid all the way down to real ground
+  let y=baseY-1,bottom=y;
+  for(let k=0;k<90;k++,y--){const b=safe(()=>dim.getBlock({x,y,z}));if(!b||!SOFT(b))break;bottom=y;}
+  if(bottom<=baseY-1)fillCol(dim,x,bottom,baseY-1,z,'minecraft:dirt');
   return;
  }
+ const e=Math.hypot(Math.max(0,Math.floor(rec.x-rec.w/2)-x,x-(Math.floor(rec.x-rec.w/2)+rec.w-1)),Math.max(0,Math.floor(rec.z-rec.d/2)-z,z-(Math.floor(rec.z-rec.d/2)+rec.d-1)));
  const top=naturalTop(dim,x,z,groundY);
  if(top===null)return;
  const surfaceBlock=safe(()=>dim.getBlock({x,y:top+1,z}));
  if(surfaceBlock?.isLiquid)return;                 // never build into water
- // Smooth slope from the building's ground level out to the natural ground, with a little noise.
- const k=e/(RING+1),ease=k*k*(3-2*k);
- const jitter=hash(x,z)<.14?1:0;                    // occasional gentle bump
- const target=Math.round(groundY+(top-groundY)*ease)+(e>1&&e<RING&&Math.abs(top-groundY)<=1?jitter:0);
- if(Math.abs(top-target)>8)return;                 // keep earthworks modest
+ // Smooth slope from the structure's ground out to the natural ground, with occasional bumps.
+ const k=Math.min(1,e/(ring+1)),ease=k*k*(3-2*k);
+ const jitter=hash(x,z)<.14?1:0;
+ const target=Math.round(groundY+(top-groundY)*ease)+(e>1&&e<ring&&Math.abs(top-groundY)<=1?jitter:0);
  if(top<target){
-  for(let y=top+1;y<=target;y++)setType(dim,{x,y,z},y===target?'minecraft:grass_block':'minecraft:dirt');
+  fillCol(dim,x,top+1,target-1,z,'minecraft:dirt');
+  setType(dim,{x,y:target,z},'minecraft:grass_block');
   const below=safe(()=>dim.getBlock({x,y:top,z}));
   if(below?.typeId==='minecraft:grass_block')setType(dim,{x,y:top,z},'minecraft:dirt');
  }else if(top>target){
-  for(let y=top;y>target;y--)setType(dim,{x,y,z},'minecraft:air');
+  fillCol(dim,x,target+1,top,z,'minecraft:air');
   setType(dim,{x,y:target,z},'minecraft:grass_block');
  }
- // Clear floating leaves/logs of trees the structure cut through (close to the building only).
+ // Clear floating leaves/logs of trees the structure cut through (close to it only).
  if(e<=4)for(let y=target+1;y<=target+18;y++){
   const b=safe(()=>dim.getBlock({x,y,z}));if(!b)break;
   if(/leaves|log/.test(b.typeId))setType(dim,{x,y,z},'minecraft:air');
@@ -205,6 +216,37 @@ function blendColumn(dim,c,groundY,rec){
   else if(r<.32)setType(dim,{x,y:target+1,z},'minecraft:short_grass');
  }
 }
+// V243: blend the fixed structures (Spark Colosseum, Spark Shrine) and every structure that was
+// built before blending existed - once each, when a player is close enough for it to be loaded.
+const BLENDED='sparkmod:v243_blended';
+function blendedSet(){return new Set(safe(()=>JSON.parse(world.getDynamicProperty(BLENDED)||'[]'),[]));}
+function retrofitTargets(){
+ const out=[];
+ const cy=world.getDynamicProperty('sparkmod:colosseum_sparks_v182_y');
+ if(world.getDynamicProperty('sparkmod:colosseum_sparks_v182_placed')===true&&typeof cy==='number')
+  out.push({key:'colosseum',rec:{type:'colosseum',x:1750,z:1500,w:64,d:50},groundY:cy+2,baseY:cy});
+ const ty=world.getDynamicProperty('sparkmod:temple_surface_y');
+ if(world.getDynamicProperty('sparkmod:temple_custom_v166_placed')===true&&typeof ty==='number')
+  out.push({key:'shrine',rec:{type:'shrine',x:1500,z:1500,w:50,d:25},groundY:ty,baseY:ty-4});
+ for(const s of sites())if(s.type!=='arena'&&!s.blended)out.push({key:'site_'+s.x+'_'+s.z,rec:s,groundY:s.y-1,baseY:s.y});
+ return out;
+}
+system.runInterval(()=>{
+ const dim=safe(()=>world.getDimension('overworld'));if(!dim)return;
+ const done=blendedSet();
+ for(const t of retrofitTargets()){
+  if(done.has(t.key))continue;
+  const near=dim.getPlayers().some(p=>Math.hypot(p.location.x-t.rec.x,p.location.z-t.rec.z)<70);
+  if(!near)continue;
+  const corners=[[t.rec.x-t.rec.w/2-20,t.rec.z-t.rec.d/2-20],[t.rec.x+t.rec.w/2+20,t.rec.z+t.rec.d/2+20]];
+  if(corners.some(([x,z])=>!safe(()=>dim.getBlock({x:Math.floor(x),y:t.groundY,z:Math.floor(z)}))))continue;
+  done.add(t.key);safe(()=>world.setDynamicProperty(BLENDED,JSON.stringify([...done])));
+  blendIn(dim,t.rec,t.groundY,t.baseY);
+  for(const p of dim.getPlayers())if(Math.hypot(p.location.x-t.rec.x,p.location.z-t.rec.z)<90)
+   safe(()=>p.sendMessage('§7⚡ The land around the '+(t.key==='colosseum'?'Spark Colosseum':t.key==='shrine'?'Spark Shrine':'Spark structure')+' is settling into the terrain...'));
+  return;   // one at a time
+ }
+},100);
 // /scriptevent sparkmod:structures - list where the Spark structures are.
 system.afterEvents.scriptEventReceive.subscribe(ev=>{
  if(ev.id!=='sparkmod:structures'||ev.sourceEntity?.typeId!=='minecraft:player')return;

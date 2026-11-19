@@ -1,6 +1,7 @@
 import {world,system,ItemStack,InputPermissionCategory,WeatherType} from '@minecraft/server';
 import {recordTitanLightning} from './titan_player_damage_v201.js';
 import * as F from './titan_fx_v217.js';
+import {titanJudgment} from './spark_bow_v238.js';
 import {EYES,CHEST,ROCKS,WINGS,GOD_EYES,GOD_CHEST,MAGMA_EYES,MAGMA_CHEST,MAGMA_FLAMES,MAGMA_RODS} from './titan_model.js';
 // Phases 1 and 3 use the lightning golem model; phase 2 (cracked base Titan) the classic model.
 // V230: the Titan keeps its phase-1 look all fight; once it becomes the Spark God it keeps that form.
@@ -996,6 +997,8 @@ function startGod(b){
   for(const p of safe(()=>d.getPlayers({location:b.location,maxDistance:160}),[]))
    safe(()=>p.onScreenDisplay.setTitle('§6§l✦ SPARK GOD MODE ✦',{subtitle:'§eIt is IMMORTAL for 20 seconds!',fadeInDuration:5,stayDuration:60,fadeOutDuration:15}));
  });
+ // V243: the Spark God casts the Spark Bow's Storm Judgment at its target.
+ godAt(b,T_GOD+60,()=>titanJudgment(b,combatTarget(b),50,12*sizeOf(b)/1.5));
  for(let t=T_GOD;t<T_END;t+=20)godAt(b,t,()=>{
   const left=Math.ceil((T_END-t)/20);
   for(const p of safe(()=>d.getPlayers({location:b.location,maxDistance:160}),[]))safe(()=>p.onScreenDisplay.setActionBar('§6§l✦ SPARK GOD §r§e— immortal for '+left+'s'));

@@ -106,9 +106,13 @@ function build(){
   return;
  }
  if(system.currentTick<placementAttempt)return;
- const top=safe(()=>terrainTop(dim,{x:CX,z:CZ}),null);
- if(!top)return;
- const y=top.location.y+1;
+ // V243: sit at the middle height of the ground across the whole arena (not just the centre),
+ // then structures_v232.js blends the surrounding land into a natural slope.
+ const heights=[[CX,CZ],[ORIGIN.x+4,ORIGIN.z+4],[ORIGIN.x+SX-5,ORIGIN.z+4],[ORIGIN.x+4,ORIGIN.z+SZ-5],[ORIGIN.x+SX-5,ORIGIN.z+SZ-5],
+  [CX,ORIGIN.z+4],[CX,ORIGIN.z+SZ-5],[ORIGIN.x+4,CZ],[ORIGIN.x+SX-5,CZ]].map(([x,z])=>safe(()=>terrainTop(dim,{x,z})?.location.y,null));
+ if(heights.some(h=>typeof h!=='number'))return;
+ heights.sort((a,b)=>a-b);
+ const y=heights[Math.floor(heights.length/2)]+1;
  const corners=[{x:ORIGIN.x,y,z:ORIGIN.z},{x:ORIGIN.x+SX-1,y,z:ORIGIN.z+SZ-1}];
  if(corners.some(p=>!safe(()=>dim.getBlock(p),null)))return;
  try{

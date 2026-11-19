@@ -34,6 +34,9 @@
     },
     "teammate_compass_vanilla": {
       "textures": "textures/items/compass_item"
+    },
+    "spark_bow": {
+      "textures": "textures/items/spark_bow"
     }
   }
 }
