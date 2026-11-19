@@ -83,6 +83,7 @@ export function awakenSparkBow(p){
  const d=p.dimension,c={x:p.location.x,y:p.location.y+1,z:p.location.z};
  for(let k=0;k<6;k++)system.runTimeout(()=>F.pulse(d,c,4+k*3,F.C.gold,.6),k*3);
  F.sfx(d,'sparkmod.titan.godmode',c,3,1.3);
+ safe(()=>host.onAwaken?.(p));
  tell(p,'§6⚡ Spark Bow awakened! STORM JUDGMENT unlocked: sneak while drawing the bow, then release.');
 }
 export function rechargeSparkBow(p){

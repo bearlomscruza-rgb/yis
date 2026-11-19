@@ -15,7 +15,7 @@ import './structure_protection.js';
 import './colosseum_v182.js';
 import './temple.js';
 import './pvp_arena.js';
-import { world, system, ItemStack, EquipmentSlot, EnchantmentTypes } from '@minecraft/server';
+import { world, system, ItemStack, EquipmentSlot, EnchantmentTypes, WeatherType } from '@minecraft/server';
 import { ActionFormData, ModalFormData } from '@minecraft/server-ui';
 import { issueGodArmor, rechargeSparkChest, sparkChestStatus, sparkChestAwakened } from './spark_systems_v229.js';
 import * as F from './titan_fx_v217.js';
@@ -472,6 +472,61 @@ function awakeningPurpleBeam(player) {
  }
 }
 
+// V245: awakening anything makes the Spark Shrine fire a massive beam into the Spark Moon,
+// which blazes bright with a golden halo while a thunderstorm rolls in.
+function moonDirection(){
+ const a=2*Math.PI*(safe(()=>world.getTimeOfDay(),18000)/24000);
+ const sun={x:Math.cos(a),y:Math.sin(a),z:0};
+ const moon={x:-sun.x,y:-sun.y,z:0};
+ if(moon.y>0.25)return moon;                       // the real moon is up: aim at it
+ return {x:0.25,y:0.97,z:0};                       // daytime Spark Moon: high overhead
+}
+function shrineAltar(p){
+ const d=p.dimension,c=p.location;
+ for(let x=-6;x<=6;x++)for(let y=-3;y<=4;y++)for(let z=-6;z<=6;z++){
+  const b=safe(()=>d.getBlock({x:Math.floor(c.x)+x,y:Math.floor(c.y)+y,z:Math.floor(c.z)+z}));
+  if(b?.typeId===I.altar)return {x:b.location.x+.5,y:b.location.y+1.2,z:b.location.z+.5};
+ }
+ return {x:c.x,y:c.y+1,z:c.z};
+}
+function shrineMoonBeam(p){
+ const d=p.dimension,o=shrineAltar(p),dir=moonDirection();
+ const L=Math.hypot(dir.x,dir.y,dir.z),u={x:dir.x/L,y:dir.y/L,z:dir.z/L};
+ // thunderstorm + sound
+ if(d.id==='minecraft:overworld')safe(()=>d.setWeather(WeatherType.Thunder,6000));
+ F.sfx(d,'sparkmod.titan.charge_long',o,4,1.2);
+ system.runTimeout(()=>{F.sfx(d,'sparkmod.titan.beam',o,8,.7);F.sfx(d,'sparkmod.titan.shine',o,8,1.1);
+  safe(()=>d.playSound('ambient.weather.thunder',o,{volume:10,pitch:.7}));},20);
+ // charge at the altar
+ for(let t=0;t<20;t+=2)system.runTimeout(()=>{F.converge(d,o,4-t/8,24,F.C.gold);F.orb(d,o,1+t/6,F.C.gold,.2);},t);
+ // the beam: 3 seconds at full power, then fading out
+ for(let k=0;k<40;k++)system.runTimeout(()=>{
+  const fade=k<30?1:1-(k-29)/11;
+  for(let s=1;s<=140;s+=1.6){
+   const q={x:o.x+u.x*s,y:o.y+u.y*s,z:o.z+u.z*s};
+   F.orb(d,q,3.4*fade+.4,F.C.gold,.25,.85*fade);F.orb(d,q,1.6*fade+.2,F.C.white,.25,fade);
+  }
+  if(k%4===0&&k<30){const a=Math.random()*Math.PI*2;F.arc(d,o,{x:o.x+u.x*60+Math.cos(a)*3,y:o.y+u.y*60,z:o.z+u.z*60+Math.sin(a)*3},{color:F.C.white,size:.5,jag:2,branches:2,max:180});}
+  if(k%6===0&&k<30)F.pulse(d,o,6+k/3,F.C.gold,.6);
+ },20+k*2);
+ F.shock(d,o,8,F.C.gold,1);F.shake(d,o,64,1.5,1.2);
+ // lightning around the shrine
+ for(let k=0;k<6;k++)system.runTimeout(()=>{const a=k*Math.PI/3,q={x:o.x+Math.cos(a)*9,y:o.y,z:o.z+Math.sin(a)*9};safe(()=>d.spawnEntity('minecraft:lightning_bolt',q));},24+k*6);
+ // the moon blazes for 10 seconds (drawn for everyone in the dimension, where they see the moon)
+ for(let k=0;k<100;k++)system.runTimeout(()=>{
+  const glow=k<70?1:1-(k-69)/31,pulse=1+.08*Math.sin(k*.5);
+  for(const q of safe(()=>d.getPlayers(),[])){
+   const e={x:q.location.x,y:q.location.y+1.62,z:q.location.z},D=60;
+   const m={x:e.x+u.x*D,y:e.y+u.y*D,z:e.z+u.z*D};
+   F.pfx(q,'fx_orb',m,{size:9*pulse*glow+1,life:.2,color:F.C.white,alpha:glow});
+   F.pfx(q,'fx_orb',m,{size:22*pulse*glow+2,life:.2,color:F.C.gold,alpha:.55*glow});
+   F.pfx(q,'sun_corona',m,{size:16*pulse,life:.2,color:F.C.gold,alpha:.9*glow});
+   if(k%10===0)F.pfx(q,'fx_pulse',m,{size:40,life:1,color:F.C.gold,alpha:glow});
+  }
+ },30+k*2);
+ for(const q of safe(()=>d.getPlayers({location:o,maxDistance:200}),[]))
+  safe(()=>q.onScreenDisplay.setTitle('§6§l⚡ THE SPARK MOON BLAZES ⚡',{subtitle:`§e${p.name} awakened Spark gear at the Shrine`,fadeInDuration:10,stayDuration:50,fadeOutDuration:20}));
+}
 function awakenedPiece(item){return item?.getDynamicProperty('sparkmod:awakened')===true;}
 function awakenPiece(p,index){
  const moon = sparkMoonStatus();
@@ -499,6 +554,7 @@ function awakenPiece(p,index){
  }
  setProp(p,'lastAwakeningMoon',moon.moonId);
  awakeningPurpleBeam(p);
+ shrineMoonBeam(p);
  tell(p,`§e⚡ Spark ${name} awakened! 5 Spark Tokens consumed.`);
  if(name==='Chestplate')tell(p,'§6⚡ SPARK MODE UNLOCKED: a hit that would kill you instead makes you IMMORTAL for 10 seconds (Speed IV, Strength II, lightning on everyone nearby). Recharge it at the Spark Shrine afterwards.');
 }
@@ -522,6 +578,7 @@ function awakenSword(p){
  }
  setProp(p,'lastAwakeningMoon',moon.moonId);
  awakeningPurpleBeam(p);
+ shrineMoonBeam(p);
  awakenedWeaponSparks(p,'sword',true);
  tell(p,'§e⚡ Spark Sword awakened! New lightning crystal texture unlocked.');
 }
@@ -552,6 +609,7 @@ function awakenMace(p){
  }
  setProp(p,'lastAwakeningMoon',moon.moonId);
  awakeningPurpleBeam(p);
+ shrineMoonBeam(p);
  tell(p,'§5⚡ Spark Mace awakened! Its native smash mechanics are preserved.');
 }
 function craft(p,type){
@@ -1532,6 +1590,7 @@ initSparkBow({
   count:p=>count(p,I.tear),
   moon:()=>sparkMoonStatus(),
   moonUsed:()=>false,   // V239: no awakening limit
+  onAwaken:p=>shrineMoonBeam(p),
   setMoonUsed:(p,m)=>setProp(p,'lastAwakeningMoon',m.moonId)
 });
 // V236: tell every player where the Spark Colosseum and Spark Shrine are when they join.
